@@ -25,11 +25,10 @@ const serviceComboSchema = new mongoose.Schema(
     },
 
     photo: {
-      type: String, // URL or file path
+      type: String,
       required: true,
     },
 
-    // 👇 Many services inside one combo
     services: [
       {
         service: {
@@ -39,7 +38,7 @@ const serviceComboSchema = new mongoose.Schema(
         },
         quantity: {
           type: Number,
-          default: 1, // e.g. same service 2 times
+          default: 1,
         },
       },
     ],
@@ -50,7 +49,6 @@ const serviceComboSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // 👇 Discounts based on number of people booking this combo
     groupDiscounts: [
       {
         minPeople: { type: Number, required: true },
@@ -59,7 +57,6 @@ const serviceComboSchema = new mongoose.Schema(
       },
     ],
 
-    // Event bookings (like weddings / corporate / parties)
     isEvent: {
       type: Boolean,
       default: false,
