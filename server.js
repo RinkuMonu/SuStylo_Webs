@@ -6,11 +6,9 @@ const connectDB = require("./config/db");
 dotenv.config();
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// DB Connection
 connectDB();
 
 // Routes

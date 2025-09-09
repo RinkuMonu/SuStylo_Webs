@@ -10,19 +10,18 @@ const scheduleSchema = new mongoose.Schema(
 
     isOpen: { type: Boolean, default: true },
 
-    openingTime: { type: String, required: true }, // e.g., "09:00 AM"
-    closingTime: { type: String, required: true }, // e.g., "09:00 PM"
+    openingTime: { type: String, required: true },
+    closingTime: { type: String, required: true },
 
     // ✅ Slots
     slots: [
       {
-        time: { type: String, required: true }, // "11:00 AM"
+        time: { type: String, required: true },
         status: { type: String, enum: ["available", "booked"], default: "available" },
-        chair: { type: Number }, // assigned chair number
+        chair: { type: Number },
       },
     ],
 
-    // ✅ Holidays / special off days
     holiday: { type: Boolean, default: false },
   },
   { timestamps: true }

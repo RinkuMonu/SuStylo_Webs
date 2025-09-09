@@ -7,8 +7,8 @@ const serviceSchema = new mongoose.Schema(
         description: { type: String, trim: true },
 
         price: { type: Number, required: true },
-        discountPrice: { type: Number }, // if discounted
-        duration: { type: Number, required: true }, // minutes
+        discountPrice: { type: Number },
+        duration: { type: Number, required: true },
         gender: { type: String, enum: ["male", "female", "unisex"], default: "unisex" },
 
         isActive: { type: Boolean, default: true },
