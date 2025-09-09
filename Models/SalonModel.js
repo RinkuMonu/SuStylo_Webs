@@ -27,17 +27,14 @@ const salonSchema = new mongoose.Schema(
 
         location: {
             type: { type: String, enum: ["Point"], default: "Point" },
-            coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
+            coordinates: { type: [Number], index: "2dsphere" },
         },
 
-        // ✅ Media
-        photos: [{ type: String }], // salon images
-        agreementDocs: [{ type: String }], // license/agreement uploads
+        photos: [{ type: String }],
+        agreementDocs: [{ type: String }],
 
-        // ✅ Facilities
-        facilities: [{ type: String }], // e.g., Parking, Wifi, AC
+        facilities: [{ type: String }],
 
-        // ✅ Chairs
         chairCount: { type: Number, default: 1 },
         chairs: [
             {
@@ -46,7 +43,6 @@ const salonSchema = new mongoose.Schema(
             },
         ],
 
-        // ✅ Status
         approvalStatus: {
             type: String,
             enum: ["pending", "approved", "rejected"],
@@ -54,13 +50,11 @@ const salonSchema = new mongoose.Schema(
         },
         isActive: { type: Boolean, default: false },
 
-        // ✅ Ratings
         rating: {
             average: { type: Number, default: 0 },
             count: { type: Number, default: 0 },
         },
 
-        // ✅ Analytics
         totalBookings: { type: Number, default: 0 },
         totalRevenue: { type: Number, default: 0 },
 

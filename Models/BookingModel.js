@@ -14,7 +14,6 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Either Salon or Freelancer (mutually exclusive)
     salon: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",
@@ -26,13 +25,11 @@ const bookingSchema = new mongoose.Schema(
       required: false,
     },
 
-    // Assigned employee/staff
     employee: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Staff",
     },
 
-    // Services OR Combo
     services: [
       {
         service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
@@ -47,12 +44,11 @@ const bookingSchema = new mongoose.Schema(
       required: false,
     },
 
-    // Schedule details
     schedule: {
       date: { type: Date, required: true },
-      slot: { type: String, required: true }, // e.g. "11:00 AM"
-      duration: { type: Number, default: 60 }, // in minutes
-      chair: { type: Number }, // salon only
+      slot: { type: String, required: true },
+      duration: { type: Number, default: 60 },
+      chair: { type: Number },
       location: {
         lat: { type: Number },
         lng: { type: Number },
@@ -60,14 +56,12 @@ const bookingSchema = new mongoose.Schema(
       },
     },
 
-    // Pricing
     baseAmount: { type: Number, required: true },
     discountAmount: { type: Number, default: 0 },
-    transportCharges: { type: Number, default: 0 }, // freelancer only
+    transportCharges: { type: Number, default: 0 },
     taxAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
 
-    // Payment Info
     paymentType: {
       type: String,
       enum: ["wallet", "UPI", "cash"],
@@ -78,29 +72,27 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
-    transactionId: { type: String }, // if UPI/online
+    transactionId: { type: String },
     walletTransaction: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "WalletTransaction",
     },
 
-    // Booking Status Flow
     status: {
       type: String,
       enum: [
-        "pending", // user created
-        "approved", // salon/freelancer approved
-        "rejected", // salon/freelancer rejected
-        "confirmed", // payment done or cash selected
-        "inProgress", // service started
-        "completed", // service finished
-        "cancelled", // user cancelled
-        "refunded", // refund processed
+        "pending",
+        "approved",
+        "rejected",
+        "confirmed",
+        "inProgress",
+        "completed",
+        "cancelled",
+        "refunded",
       ],
       default: "pending",
     },
 
-    // Event booking details (if applicable)
     event: {
       isEvent: { type: Boolean, default: false },
       eventType: {
@@ -111,17 +103,15 @@ const bookingSchema = new mongoose.Schema(
       extraNotes: { type: String },
     },
 
-    // Tracking
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // who booked (could be admin booking on behalf)
+      ref: "User",
     },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // salon/freelancer owner or staff
+      ref: "User",
     },
 
-    // Audit & Tracking
     cancellationReason: { type: String },
     refundAmount: { type: Number, default: 0 },
 

@@ -1,17 +1,15 @@
 // models/User.js
 const mongoose = require("mongoose");
 
-// Role constants — centralize so logic consistent rahe
 const USER_ROLES = {
   SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
   SALON_OWNER: "salon_owner",
   FREELANCER: "freelancer",
   SALON_STAFF: "salon_staff",
-  CUSTOMER: "customer", // website user
+  CUSTOMER: "customer",
 };
 
-// Sub-schema for address (optional)
 const AddressSchema = new mongoose.Schema({
   street: { type: String, trim: true },
   city: { type: String, trim: true },
@@ -24,10 +22,8 @@ const AddressSchema = new mongoose.Schema({
   },
 });
 
-// Main User schema
 const UserSchema = new mongoose.Schema(
   {
-    // Basic auth / identity
     name: { type: String, required: true, trim: true },
     email: {
       type: String,
@@ -42,10 +38,9 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    passwordHash: { type: String, required: true }, // hash, never plain text
-    avatarUrl: { type: String }, // profile picture
+    passwordHash: { type: String, required: true },
+    avatarUrl: { type: String },
 
-    // Role management
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
@@ -53,21 +48,18 @@ const UserSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Role-specific fields
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",
-      default: null, // for salon_owner, salon_staff
+      default: null,
     },
     region: {
       type: String,
-      default: null, // for admins (which city/region they manage)
+      default: null,
     },
 
-    // For salon staff — which services can they perform (optional)
     skills: [{ type: String }],
 
-    // For freelancers — service areas
     serviceAreas: [
       {
         city: String,
@@ -75,26 +67,23 @@ const UserSchema = new mongoose.Schema(
       },
     ],
 
-    // For customers — preferences
     preferences: {
       genderPreference: { type: String, enum: ["male", "female", "any"] },
       defaultLocation: AddressSchema,
     },
 
-    // Status flags
     status: {
       type: String,
       enum: ["active", "inactive", "blocked", "pending_approval"],
       default: "active",
     },
-    isVerified: { type: Boolean, default: false }, // email/phone verification
+    isVerified: { type: Boolean, default: false },
     lastLoginAt: { type: Date },
 
-    // Security / audit
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      default: null, // track who created this admin (for super-admin)
+      default: null,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -103,7 +92,7 @@ const UserSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt, updatedAt
+    timestamps: true,
   }
 );
 

@@ -1,8 +1,8 @@
 const categorySchema = new mongoose.Schema(
     {
-        name: { type: String, required: true, trim: true }, // e.g., Hair, Skin
+        name: { type: String, required: true, trim: true },
         description: { type: String, trim: true },
-        image: { type: String }, // category banner
+        image: { type: String },
     },
     { timestamps: true }
 );

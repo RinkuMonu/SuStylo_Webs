@@ -4,14 +4,14 @@ const reviewSchema = new mongoose.Schema(
   {
     reviewFor: {
       type: String,
-      enum: ["Salon", "Freelancer", "Staff"], // kis ke liye review hai
+      enum: ["Salon", "Freelancer", "Staff"],
       required: true,
     },
 
     targetId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      refPath: "reviewFor", // 🔹 dynamic reference (Salon / Freelancer / Staff)
+      refPath: "reviewFor",
     },
 
     user: {
@@ -39,7 +39,6 @@ const reviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔹 Har user ek hi entity pr ek review de (Salon/Freelancer/Staff)
 reviewSchema.index({ reviewFor: 1, targetId: 1, user: 1 }, { unique: true });
 
 module.exports = mongoose.model("Review", reviewSchema);

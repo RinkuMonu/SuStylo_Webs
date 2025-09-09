@@ -25,7 +25,6 @@ const freelancerSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // ✅ Reference to Services Schema
     services: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -33,7 +32,6 @@ const freelancerSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ Reference to Staff/Employee Schema
     employees: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -41,7 +39,6 @@ const freelancerSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ Location (for nearby search)
     location: {
       type: {
         type: String,
@@ -49,31 +46,28 @@ const freelancerSchema = new mongoose.Schema(
         default: "Point",
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
+        type: [Number],
         index: "2dsphere",
       },
     },
 
-    // ✅ Transport & reach details
     transportCharge: {
       type: Number,
-      default: 0, // like delivery charges in e-commerce
+      default: 0,
     },
     averageReachTime: {
-      type: Number, // minutes to reach customer location
+      type: Number,
       default: 30,
     },
 
-    // ✅ Booking rules
     bookingTypes: {
       preBooking: { type: Boolean, default: true },
       urgentBooking: { type: Boolean, default: true },
     },
 
-    // ✅ Status flags
     isActive: {
       type: Boolean,
-      default: false, // if false → no booking alerts
+      default: false,
     },
     approvalStatus: {
       type: String,
@@ -81,7 +75,6 @@ const freelancerSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    // ✅ Ratings & reviews
     rating: {
       average: { type: Number, default: 0 },
       count: { type: Number, default: 0 },

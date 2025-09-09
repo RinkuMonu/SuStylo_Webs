@@ -13,7 +13,7 @@ const bannerSchema = new mongoose.Schema(
             required: true,
         },
         image: {
-            type: String, // file path
+            type: String,
             required: true,
         },
         createdBy: {
