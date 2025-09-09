@@ -14,10 +14,9 @@ const couponSchema = new mongoose.Schema(
     },
 
     image: {
-      type: String, // URL or path to coupon banner
+      type: String,
     },
 
-    // Discount handling (either percentage or flat)
     discountType: {
       type: String,
       enum: ["percentage", "flat"],
@@ -30,7 +29,6 @@ const couponSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Usage & validity
     code: {
       type: String,
       required: true,
@@ -41,12 +39,12 @@ const couponSchema = new mongoose.Schema(
 
     minOrderAmount: {
       type: Number,
-      default: 0, // coupon only applies if order >= this
+      default: 0,
     },
 
     maxDiscount: {
       type: Number,
-      default: 0, // useful for percentage coupons (cap the discount)
+      default: 0,
     },
 
     startDate: {
@@ -61,7 +59,7 @@ const couponSchema = new mongoose.Schema(
 
     usageLimit: {
       type: Number,
-      default: 0, // 0 = unlimited
+      default: 0,
     },
 
     usedCount: {
@@ -77,7 +75,7 @@ const couponSchema = new mongoose.Schema(
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Admin who created
+      ref: "User",
     },
   },
   { timestamps: true }

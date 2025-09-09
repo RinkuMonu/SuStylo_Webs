@@ -8,21 +8,18 @@ const salonLeadSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Who is registering
     ownerName: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // Type of lead: Salon Owner OR Freelancer
     leadType: {
       type: String,
       enum: ["Salon", "Freelancer"],
       required: true,
     },
 
-    // Salon Details (only required if leadType = "Salon")
     salonName: {
       type: String,
       trim: true,
@@ -35,15 +32,14 @@ const salonLeadSchema = new mongoose.Schema(
       city: { type: String, trim: true },
     },
 
-    // Freelancer-specific fields
     serviceArea: {
-      type: String, // e.g., "Jaipur city", "Within 10km"
+      type: String,
       trim: true,
     },
 
     servicesOffered: [
       {
-        type: String, // e.g., "Haircut", "Makeup", "Facial"
+        type: String,
       },
     ],
 
