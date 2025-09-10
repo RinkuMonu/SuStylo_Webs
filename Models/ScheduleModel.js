@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const scheduleSchema = new mongoose.Schema(
   {
     salon: { type: mongoose.Schema.Types.ObjectId, ref: "Salon", required: true },
@@ -27,4 +29,6 @@ const scheduleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Schedule", scheduleSchema);
+const Schedule = mongoose.model("Schedule", scheduleSchema);
+
+export default Schedule;

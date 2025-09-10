@@ -1,7 +1,6 @@
-// models/User.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const USER_ROLES = {
+export const USER_ROLES = {
   SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
   SALON_OWNER: "salon_owner",
@@ -96,5 +95,6 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("User", UserSchema);
-module.exports.USER_ROLES = USER_ROLES;
+const User = mongoose.model("User", UserSchema);
+
+export default User;
