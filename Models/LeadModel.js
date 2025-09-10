@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const salonLeadSchema = new mongoose.Schema(
   {
@@ -57,4 +57,6 @@ const salonLeadSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("SalonLead", salonLeadSchema);
+const SalonLead = mongoose.model("SalonLead", salonLeadSchema);
+
+export default SalonLead;

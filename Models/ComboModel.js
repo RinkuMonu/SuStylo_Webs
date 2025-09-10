@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const serviceComboSchema = new mongoose.Schema(
   {
@@ -85,4 +85,6 @@ const serviceComboSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ServiceCombo", serviceComboSchema);
+const ServiceCombo = mongoose.model("ServiceCombo", serviceComboSchema);
+
+export default ServiceCombo;
