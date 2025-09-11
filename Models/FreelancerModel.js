@@ -80,6 +80,27 @@ const freelancerSchema = new mongoose.Schema(
       count: { type: Number, default: 0 },
     },
 
+
+      // 🔗 Referral integration
+    referrals: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Referral",
+      },
+    ],
+
+    // 🔗 Commission integration
+    commission: {
+      isCommissionApplicable: { type: Boolean, default: true },
+      percentage: { type: Number, default: 10 }, // default 10%
+      commissionsHistory: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Commission",
+        },
+      ],
+    },
+
     createdAt: {
       type: Date,
       default: Date.now,
