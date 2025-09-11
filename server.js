@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 
 //import routes
 import bannerRoutes from "./Routes/BannerRoute.js";
+import notificationRoutes from "./Routes/NotificationRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -16,6 +17,8 @@ connectDB();
 
 // Routes
 app.use("/api/banners", bannerRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
