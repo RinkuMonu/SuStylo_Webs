@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 // Address sub-schema
 const AddressSchema = new mongoose.Schema({
   street: { type: String, trim: true },
