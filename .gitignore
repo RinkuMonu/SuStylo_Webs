@@ -6,6 +6,9 @@
 
 firebase-service-account.json
 
+# Firebase config
+config/firebase.js
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
