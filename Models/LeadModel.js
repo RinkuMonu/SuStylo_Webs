@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const salonLeadSchema = new mongoose.Schema(
+const leadSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -20,11 +20,13 @@ const salonLeadSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Only applicable if leadType is Salon
     salonName: {
       type: String,
       trim: true,
     },
 
+    // Address applicable for both
     address: {
       street: { type: String, trim: true },
       area: { type: String, trim: true },
@@ -49,6 +51,11 @@ const salonLeadSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Super admin ID
+    },
+
     createdAt: {
       type: Date,
       default: Date.now,
@@ -57,6 +64,5 @@ const salonLeadSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const SalonLead = mongoose.model("SalonLead", salonLeadSchema);
-
-export default SalonLead;
+const Lead = mongoose.model("Lead", leadSchema);
+export default Lead;

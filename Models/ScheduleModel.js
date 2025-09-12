@@ -11,16 +11,26 @@ const scheduleSchema = new mongoose.Schema(
     },
 
     isOpen: { type: Boolean, default: true },
-
     openingTime: { type: String, required: true },
     closingTime: { type: String, required: true },
 
-    // ✅ Slots
+    repeatType: {
+      type: String,
+      enum: ["daily", "weekly", "monthly", "yearly", "none"],
+      default: "none",
+    },
+
     slots: [
       {
-        time: { type: String, required: true },
+        time: { type: String, required: true }, // "10:00 AM"
         status: { type: String, enum: ["available", "booked"], default: "available" },
-        chair: { type: Number },
+        chairs: [
+          {
+            chairNumber: { type: Number, required: true },
+            staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+            status: { type: String, enum: ["available", "booked"], default: "available" },
+          },
+        ],
       },
     ],
 
@@ -30,5 +40,4 @@ const scheduleSchema = new mongoose.Schema(
 );
 
 const Schedule = mongoose.model("Schedule", scheduleSchema);
-
 export default Schedule;

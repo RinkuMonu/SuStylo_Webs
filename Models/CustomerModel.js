@@ -44,6 +44,14 @@ const CustomerSchema = new mongoose.Schema(
     // Address
     address: AddressSchema,
 
+    loginLocations: [
+      {
+        lat: { type: Number },
+        lng: { type: Number },
+        loggedAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // OTP (password reset / login verification)
     otp: OtpSchema,
 
