@@ -3,17 +3,17 @@ import mongoose from "mongoose";
 const ticketReplySchema = new mongoose.Schema(
   {
     message: { type: String, required: true, trim: true },
-    attachments: [{ type: String }], // URLs of screenshots, documents
+    attachments: [{ type: String }],
 
     repliedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // could be customer, admin, staff
+      ref: "User",
       required: true,
     },
 
     role: {
       type: String,
-      enum: ["customer", "salon_owner", "freelancer", "staff", "admin", "super_admin"],
+      enum: ["customer", "freelancer", "staff", "admin", "super_admin"],
       required: true,
     },
 
@@ -59,64 +59,46 @@ const ticketSchema = new mongoose.Schema(
       default: "open",
     },
 
-    // 🔗 Relations
+    // 🔗 Who raised
     raisedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // customer / freelancer / salonOwner
+      ref: "User",
+      required: true,
+    },
+
+    role: {
+      type: String,
+      enum: ["customer", "freelancer", "staff", "admin", "super_admin"],
       required: true,
     },
 
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // support staff or admin
+      ref: "User",
     },
 
-    bookingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
-    },
-
-    paymentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Payment", // jab aap payment schema banaoge
-    },
-
-    walletTransactionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "WalletTransaction", // wallet schema me use hoga
-    },
-
+    // 🎯 Salon always required for customer & staff
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",
+      required: function () {
+        return this.role === "customer" || this.role === "staff";
+      },
     },
 
-    freelancerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Freelancer",
-    },
+    // Optional relations
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
+    walletTransactionId: { type: mongoose.Schema.Types.ObjectId, ref: "WalletTransaction" },
 
-    staffId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Staff",
-    },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
+    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
 
     replies: [ticketReplySchema],
+    attachments: [{ type: String }],
 
-    attachments: [{ type: String }], // initial issue proof
-
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

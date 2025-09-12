@@ -1,38 +1,43 @@
-import express from "express";
-import { authenticateAndAuthorize } from "./middlewares/authRoleMiddleware.js";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-const router = express.Router();
+dotenv.config();
 
-// Route for super admin only
-router.get(
-    "/super-admin-dashboard",
-    authenticateAndAuthorize(["superAdmin"], { forbiddenMsg: "Only Super Admins can access this route!" }),
-    (req, res) => {
-        res.send(`Welcome Super Admin: ${req.user.name}`);
+/**
+ * 🔹 Middleware: Authenticate & Authorize
+ * - Verifies JWT token
+ * - Attaches decoded user to req.user
+ * - Checks role authorization if roles are provided
+ */
+export const authenticateAndAuthorize = (allowedRoles = [], messages = {}) => {
+  return (req, res, next) => {
+    try {
+      const token = req.headers["authorization"]?.split(" ")[1]; // Bearer <token>
+
+      if (!token) {
+        return res
+          .status(401)
+          .json({ success: false, message: messages.unauthorizedMsg || "No token provided!" });
+      }
+
+      jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).json({ success: false, message: "Invalid token!" });
+        }
+
+        req.user = decoded; // decoded = { id, role, name }
+
+        // 🔹 Role check
+        if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.role)) {
+          return res
+            .status(403)
+            .json({ success: false, message: messages.forbiddenMsg || "Forbidden!" });
+        }
+
+        next();
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Auth error: " + err.message });
     }
-);
-
-// Route for admin and super admin
-router.get(
-    "/admin-dashboard",
-    authenticateAndAuthorize(["admin", "superAdmin"], { forbiddenMsg: "Admins only!" }),
-    (req, res) => {
-        res.send(`Welcome Admin or Super Admin: ${req.user.name}`);
-    }
-);
-
-// Route for salon owner, freelancer, and super admin
-router.get(
-    "/manage-services",
-    authenticateAndAuthorize(["salonOwner", "freelancer", "superAdmin"], { forbiddenMsg: "You cannot manage services" }),
-    (req, res) => {
-        res.send(`Manage your services: ${req.user.name}`);
-    }
-);
-
-// Accessible by any authenticated user
-router.get("/profile", authenticateAndAuthorize([], { unauthorizedMsg: "Please login to access profile" }), (req, res) => {
-    res.send(`Your profile: ${req.user.name} (${req.user.role})`);
-});
-
-export default router;
+  };
+};
