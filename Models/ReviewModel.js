@@ -16,7 +16,7 @@ const reviewSchema = new mongoose.Schema(
 
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Customer",
       required: true,
     },
 
@@ -35,12 +35,23 @@ const reviewSchema = new mongoose.Schema(
     editedAt: {
       type: Date,
     },
+
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending", // admin approval needed
+    },
+
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+    },
   },
   { timestamps: true }
 );
 
+// Ensure one review per user per target
 reviewSchema.index({ reviewFor: 1, targetId: 1, user: 1 }, { unique: true });
 
 const Review = mongoose.model("Review", reviewSchema);
-
 export default Review;

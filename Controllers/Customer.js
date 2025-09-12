@@ -9,22 +9,47 @@ export const registerCustomer = async (req, res) => {
   try {
     const { name, email, phone, password, gender, age } = req.body;
 
-    // Check if user already exists
-    const existing = await Customer.findOne({ $or: [{ email }, { phone }] });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "User already exists!" });
-    }
-
-    // Hash password
+    // Hash password first
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Profile Image (Cloudinary via multer)
     let avatarUrl = null;
     if (req.file && req.file.path) {
-      avatarUrl = req.file.path;
+      const cloudUrl = req.file.path;
+      avatarUrl = cloudUrl.substring(cloudUrl.indexOf("/upload/"));
     }
 
-    const customer = await Customer.create({
+    // Check if a customer exists (even soft deleted)
+    let customer = await Customer.findOne({ $or: [{ email }, { phone }] });
+
+    if (customer) {
+      if (customer.isDeleted) {
+        // Reactivate old customer
+        customer.name = name;
+        customer.email = email;
+        customer.phone = phone;
+        customer.passwordHash = hashedPassword;
+        customer.gender = gender;
+        customer.age = age;
+        if (avatarUrl) customer.avatarUrl = avatarUrl;
+        customer.status = "active";
+        customer.isActive = true;
+        customer.isDeleted = false;
+        customer.isVerified = true; // optional: after OTP verification
+        await customer.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "Customer re-registered successfully",
+          customer,
+        });
+      } else {
+        return res.status(400).json({ success: false, message: "User already exists!" });
+      }
+    }
+
+    // If no existing customer, create new
+    customer = await Customer.create({
       name,
       email,
       phone,
@@ -34,7 +59,7 @@ export const registerCustomer = async (req, res) => {
       avatarUrl,
       status: "active",
       isActive: true,
-      isVerified: true, // after OTP verification in real flow
+      isVerified: true, // optional
     });
 
     res.status(201).json({
@@ -49,7 +74,7 @@ export const registerCustomer = async (req, res) => {
 
 export const loginCustomer = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, latitude, longitude } = req.body;
 
     const customer = await Customer.findOne({ email });
     if (!customer) {
@@ -61,17 +86,33 @@ export const loginCustomer = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials!" });
     }
 
+    // Update last login timestamp
+    customer.lastLoginAt = new Date();
+
+    // Update coordinates if provided
+    if (latitude && longitude) {
+      customer.address = customer.address || {};
+      customer.address.coordinates = { lat: latitude, lng: longitude };
+
+      customer.loginLocations = customer.loginLocations || [];
+      customer.loginLocations.push({
+        lat: latitude,
+        lng: longitude,
+        loggedAt: new Date(),
+      });
+    }
+
+    await customer.save();
+
     const token = jwt.sign(
       { id: customer._id, role: "customer", name: customer.name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    customer.lastLoginAt = new Date();
-    await customer.save();
-
     res.json({ success: true, token, customer });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -127,22 +168,31 @@ export const sendOtp = async (req, res) => {
     const customer = await Customer.findOne({ phone });
     if (!customer) return res.status(404).json({ success: false, message: "User not found!" });
 
+    if (!process.env.FAST2SMS_API_KEY) {
+      return res.status(500).json({ success: false, message: "Fast2SMS API key missing" });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
     customer.otp = { code: otp, expiresAt };
     await customer.save();
 
-    // Send OTP using Fast2SMS
-    await fast2sms.sendMessage({
+    // Correct Fast2SMS call
+    const response = await fast2sms.sendMessage({
       authorization: process.env.FAST2SMS_API_KEY,
       message: `Your OTP for password reset is ${otp}`,
       numbers: [phone],
+      sender_id: "FSTSMS", // optional
+      route: "v3",          // optional
     });
+
+    console.log("Fast2SMS response:", response);
 
     res.json({ success: true, message: "OTP sent successfully" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("sendOtp error:", err.response || err.message || err);
+    res.status(500).json({ success: false, message: "Failed to send OTP" });
   }
 };
 
