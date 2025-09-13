@@ -8,83 +8,57 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    salon: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Salon",
-      required: false,
-    },
-    freelancer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Freelancer",
-      required: false,
-    },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // freelancer is Admin type
 
-    employee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Staff",
-    },
+    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
 
     services: [
       {
-        service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
         quantity: { type: Number, default: 1 },
         price: { type: Number, required: true },
       },
     ],
 
-    combo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "ServiceCombo",
-      required: false,
-    },
+    comboId: { type: mongoose.Schema.Types.ObjectId, ref: "ServiceCombo" },
 
     schedule: {
       date: { type: Date, required: true },
-      slot: { type: String, required: true },
-      duration: { type: Number, default: 60 },
+      slot: { type: String, required: true }, // "10:00 AM"
+      duration: { type: Number, default: 60 }, // minutes
       chair: { type: Number },
       location: {
-        lat: { type: Number },
-        lng: { type: Number },
+        type: { type: String, enum: ["Point"], default: "Point" },
+        coordinates: { type: [Number] }, // [lng, lat]
         address: { type: String },
       },
     },
 
+    // Financials
     baseAmount: { type: Number, required: true },
     discountAmount: { type: Number, default: 0 },
     transportCharges: { type: Number, default: 0 },
     taxAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
 
-    paymentType: {
-      type: String,
-      enum: ["wallet", "UPI", "cash"],
-      required: true,
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
-    },
+    // Payment
+    paymentType: { type: String, enum: ["wallet", "UPI", "cash"], required: true },
+    paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
     transactionId: { type: String },
-    walletTransaction: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "WalletTransaction",
-    },
+    walletTransaction: { type: mongoose.Schema.Types.ObjectId, ref: "WalletTransaction" },
 
+    // Booking status
     status: {
       type: String,
       enum: [
-        "pending",
-        "approved",
+        "pending",     // request received
+        "onHold",      // slot hold (waiting for payment)
+        "approved",    // salon/admin approved
         "rejected",
-        "confirmed",
+        "confirmed",   // confirmed with payment
         "inProgress",
         "completed",
         "cancelled",
@@ -93,39 +67,25 @@ const bookingSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    // Event-based booking
     event: {
       isEvent: { type: Boolean, default: false },
-      eventType: {
-        type: String,
-        enum: ["wedding", "party", "corporate", "festival", "other"],
-      },
+      eventType: { type: String, enum: ["wedding", "party", "corporate", "festival", "other"] },
       peopleCount: { type: Number },
       extraNotes: { type: String },
     },
 
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    approvedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    // Audit
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     cancellationReason: { type: String },
     refundAmount: { type: Number, default: 0 },
 
-    isRated: {
-      type: Boolean,
-      default: false,
-    },
-
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    isRated: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 const Booking = mongoose.model("Booking", bookingSchema);
-
 export default Booking;

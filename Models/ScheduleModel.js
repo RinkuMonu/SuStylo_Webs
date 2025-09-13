@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const scheduleSchema = new mongoose.Schema(
   {
-    salon: { type: mongoose.Schema.Types.ObjectId, ref: "Salon", required: true },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // अगर freelancer है
 
     day: {
       type: String,
@@ -11,26 +12,22 @@ const scheduleSchema = new mongoose.Schema(
     },
 
     isOpen: { type: Boolean, default: true },
-    openingTime: { type: String, required: true },
-    closingTime: { type: String, required: true },
+    openingTime: { type: String, required: true }, // "09:00"
+    closingTime: { type: String, required: true }, // "18:00"
 
     repeatType: {
       type: String,
       enum: ["daily", "weekly", "monthly", "yearly", "none"],
-      default: "none",
+      default: "daily",
     },
 
     slots: [
       {
         time: { type: String, required: true }, // "10:00 AM"
         status: { type: String, enum: ["available", "booked"], default: "available" },
-        chairs: [
-          {
-            chairNumber: { type: Number, required: true },
-            staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-            status: { type: String, enum: ["available", "booked"], default: "available" },
-          },
-        ],
+        staff: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+        service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+        chairNumber: { type: Number },
       },
     ],
 

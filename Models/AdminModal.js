@@ -1,25 +1,6 @@
+
+// models/Admin.js
 import mongoose from "mongoose";
-
-
-// Address sub-schema
-const AddressSchema = new mongoose.Schema({
-  street: { type: String, trim: true },
-  city: { type: String, trim: true },
-  state: { type: String, trim: true },
-  pincode: { type: String, trim: true },
-  country: { type: String, trim: true, default: "India" },
-  coordinates: {
-    lat: { type: Number },
-    lng: { type: Number },
-  },
-});
-
-// OTP sub-schema
-const OtpSchema = new mongoose.Schema({
-  code: { type: String, required: true },
-  expiresAt: { type: Date, required: true },
-  createdAt: { type: Date, default: Date.now },
-});
 
 // Role constants
 export const ADMIN_ROLES = {
@@ -28,10 +9,29 @@ export const ADMIN_ROLES = {
   FREELANCER: "freelancer",
 };
 
-// Main schema
+// Address sub-schema
+const AddressSchema = new mongoose.Schema({
+  street: { type: String, trim: true },
+  city: { type: String, trim: true },
+  state: { type: String, trim: true },
+  pincode: { type: String, trim: true },
+  country: { type: String, trim: true, default: "India" },
+  location: {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
+  },
+});
+
+// OTP sub-schema (for password reset / verification)
+const OtpSchema = new mongoose.Schema({
+  code: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Main Admin schema
 const AdminSchema = new mongoose.Schema(
   {
-    // Basic details
     name: { type: String, required: true, trim: true },
     email: {
       type: String,
@@ -39,20 +39,18 @@ const AdminSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
     phone: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },
 
-    // Profile
-    gender: { type: String, enum: ["male", "female", "other"], default: null },
+    gender: { type: String, enum: ["male", "female", "other"] },
     age: { type: Number, min: 0 },
     avatarUrl: { type: String },
-    images: [{ type: String }], // gallery
+    images: [{ type: String }],
 
-    // Address
     address: AddressSchema,
 
-    // Role
     role: {
       type: String,
       enum: Object.values(ADMIN_ROLES),
@@ -60,31 +58,26 @@ const AdminSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Hierarchy (who created whom)
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin", // Super Admin → Admin, or Super Admin → Freelancer
+      ref: "Admin",
       default: null,
     },
 
-    // Salon Owner → Salon reference
     salonId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",
       default: null,
     },
 
-    // Freelancer → Assigned Area
     freelancerArea: {
-      city: { type: String },
-      state: { type: String },
-      pincode: { type: String },
+      city: String,
+      state: String,
+      pincode: String,
     },
 
-    // OTP for password reset / verification
     otp: OtpSchema,
 
-    // Account status
     status: {
       type: String,
       enum: ["active", "inactive", "blocked", "pending_verification"],
@@ -93,31 +86,16 @@ const AdminSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
 
-    // Login security
     lastLoginAt: { type: Date },
     loginAttempts: { type: Number, default: 0 },
     lockedUntil: { type: Date },
 
-    // Soft delete
     isDeleted: { type: Boolean, default: false },
 
-    // Audit
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-      default: null,
-    },
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-      default: null,
-    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },
   },
-  {
-    timestamps: true, // createdAt & updatedAt auto-add
-  }
+  { timestamps: true }
 );
 
-const Admin = mongoose.model("Admin", AdminSchema);
-
-export default Admin;
+export default mongoose.model("Admin", AdminSchema);
