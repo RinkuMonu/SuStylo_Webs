@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import fast2sms from "fast-two-sms";
 import { generateStrongPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "../utils/email.js";
+import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
+
 
 export const bootstrapSuperAdmin = async (req, res) => {
   try {
@@ -111,6 +113,7 @@ export const loginAdmin = async (req, res) => {
 export const sendAdminOtp = async (req, res) => {
   try {
     const { phone } = req.body;
+    console.log(req.body);
     const admin = await Admin.findOne({ phone });
     if (!admin || admin.isDeleted) return res.status(404).json({ success: false, message: "Admin not found" });
 
@@ -173,19 +176,26 @@ export const resetAdminPassword = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const adminId = req.user.id;
-    const { name, phone, avatarUrl, address } = req.body;
+    const { name, phone } = req.body;
 
     const admin = await Admin.findById(adminId);
-    if (!admin || admin.isDeleted) return res.status(404).json({ success: false, message: "Admin not found" });
+    if (!admin || admin.isDeleted) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
 
     if (name) admin.name = name;
     if (phone) admin.phone = phone;
-    if (avatarUrl) admin.avatarUrl = avatarUrl;
-    if (address) admin.address = address;
+
+    // ✅ If file uploaded → Cloudinary URL set
+    if (req.file && req.file.path) {
+      admin.avatarUrl = req.file.path; // Cloudinary returns URL in .path
+    }
 
     await admin.save();
+
     return res.json({ success: true, message: "Profile updated", admin });
   } catch (err) {
+    console.error("updateProfile error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
