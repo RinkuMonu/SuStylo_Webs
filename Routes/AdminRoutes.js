@@ -30,6 +30,7 @@ router.put(
   uploadToCloudinary("admin_avatars").single("avatar"),
   updateProfile
 );
+
 router.get("/details/:id", authenticateAndAuthorize, getAdminDetails);
 router.delete("/delete/:id", authenticateAndAuthorize, deleteAdmin);
 
