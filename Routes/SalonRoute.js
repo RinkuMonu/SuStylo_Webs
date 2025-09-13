@@ -5,43 +5,50 @@ import {
   getSalonById,
   updateSalon,
   deleteSalon,
-  addService,
-  addSchedule,
-} from "../Controllers/Salon.js";
-
+  toggleSalonStatus,
+} from "../Controllers/SalonController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
-import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
+import { ADMIN_ROLES } from "../Models/AdminModal.js"; // Assuming includes SuperAdmin, Admin
+// also roles definitions for Salon, Freelancer
 
 const router = express.Router();
 
-// Salon CRUD
+// Admin/SuperAdmin can do all, Salon can do some, Freelancer none for Salon routes
+
 router.post(
   "/",
-  authenticateAndAuthorize(["owner", "superadmin"]),
-  uploadToCloudinary("salon").fields([
-    { name: "photos", maxCount: 5 },
-    { name: "agreementDocs", maxCount: 3 },
-  ]),
+  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Salon" ], { forbiddenMsg: "Not allowed to create salon" }),
   createSalon
 );
 
-router.get("/", getAllSalons);
-router.get("/:id", getSalonById);
+router.get(
+  "/",
+  authenticateAndAuthorize([ "SuperAdmin", "Admin" ], { forbiddenMsg: "Only admin can view all salons" }),
+  getAllSalons
+);
+
+router.get(
+  "/:id",
+  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Salon" ], { forbiddenMsg: "Not allowed" }),
+  getSalonById
+);
+
 router.put(
   "/:id",
-  authenticateAndAuthorize(["owner", "superadmin"]),
-  uploadToCloudinary("salon").fields([
-    { name: "photos", maxCount: 5 },
-    { name: "agreementDocs", maxCount: 3 },
-  ]),
+  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Salon" ], { forbiddenMsg: "Not allowed" }),
   updateSalon
 );
-router.delete("/:id", authenticateAndAuthorize(["superadmin"]), deleteSalon);
 
-// Services
-router.post("/:id/services", authenticateAndAuthorize(["owner", "superadmin"]), addService);
+router.delete(
+  "/:id",
+  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Salon" ], { forbiddenMsg: "Not allowed" }),
+  deleteSalon
+);
 
-// Schedule
-router.post("/:id/schedules", authenticateAndAuthorize(["owner", "superadmin"]), addSchedule);
+router.post(
+  "/:id/toggle-status",
+  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Salon" ], { forbiddenMsg: "Not allowed" }),
+  toggleSalonStatus
+);
 
 export default router;
