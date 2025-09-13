@@ -4,8 +4,14 @@ const salonSchema = new mongoose.Schema(
   {
     owner: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User", // User of role "admin/salon"
       required: true,
+    },
+
+    leadRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lead", // from which lead this salon was created
+      default: null,
     },
 
     salonName: { type: String, required: true, trim: true },
@@ -23,23 +29,32 @@ const salonSchema = new mongoose.Schema(
       city: { type: String, required: true, trim: true },
       state: { type: String, trim: true },
       pinCode: { type: String, required: true, trim: true },
+      country: { type: String, trim: true, default: "India" },
     },
 
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], index: "2dsphere" },
+      coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
     },
 
     photos: [{ type: String }],
     agreementDocs: [{ type: String }],
-
     facilities: [{ type: String }],
 
+    // Staff & Services
+    staff: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
+    services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
+
+    // Chairs management
     chairCount: { type: Number, default: 1 },
     chairs: [
       {
         number: { type: Number },
-        status: { type: String, enum: ["available", "booked"], default: "available" },
+        status: {
+          type: String,
+          enum: ["available", "booked"],
+          default: "available",
+        },
       },
     ],
 
@@ -58,31 +73,18 @@ const salonSchema = new mongoose.Schema(
     totalBookings: { type: Number, default: 0 },
     totalRevenue: { type: Number, default: 0 },
 
-    // 🔗 Referral integration
-    referrals: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Referral",
-      },
-    ],
+    referrals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Referral" }],
 
-    // 🔗 Commission integration
     commission: {
-      isCommissionApplicable: { type: Boolean, default: true }, // enable/disable
-      percentage: { type: Number, default: 10 }, // default 10%
+      isCommissionApplicable: { type: Boolean, default: true },
+      percentage: { type: Number, default: 10 },
       commissionsHistory: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Commission",
-        },
+        { type: mongoose.Schema.Types.ObjectId, ref: "Commission" },
       ],
     },
-
-    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
 const Salon = mongoose.model("Salon", salonSchema);
-
 export default Salon;

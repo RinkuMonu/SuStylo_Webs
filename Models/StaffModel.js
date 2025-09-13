@@ -1,110 +1,49 @@
 import mongoose from "mongoose";
 
-const AddressSchema = new mongoose.Schema({
+const addressSchema = new mongoose.Schema({
   street: { type: String, trim: true },
   city: { type: String, trim: true },
   state: { type: String, trim: true },
   pincode: { type: String, trim: true },
   country: { type: String, trim: true, default: "India" },
   coordinates: {
-    lat: { type: Number },
-    lng: { type: Number },
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
   },
 });
 
-const StaffSchema = new mongoose.Schema(
+const staffSchema = new mongoose.Schema(
   {
-    // Hierarchy
-    childId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Staff", // staff can have child staff (optional)
-      default: null,
-    },
+    salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
 
-    salonId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Salon",
-      default: null,
-    },
-    freelancerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin", // freelancers saved in Admin model
-      default: null,
-    },
-
-    // Profile
     name: { type: String, required: true, trim: true },
-    email: {
-      type: String,
-      unique: true,
-      sparse: true,
-      lowercase: true,
-      trim: true,
-    },
+    email: { type: String, lowercase: true, trim: true },
     phone: { type: String, required: true, trim: true },
+    gender: { type: String, enum: ["male", "female", "other"] },
     age: { type: Number, min: 0 },
-    gender: { type: String, enum: ["male", "female", "other"], default: null },
     avatarUrl: { type: String },
-    images: [{ type: String }],
-    address: AddressSchema,
+    address: addressSchema,
 
-    // Professional details
-    experience: { type: Number, min: 0, default: 0 }, // in years
-    expertise: [{ type: String, trim: true }], // skills/services
+    expertise: [{ type: String }], // skills/services
+    experience: { type: Number, default: 0 }, // in years
 
-    // References
-    appointments: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Appointment",
-      },
-    ],
-    attendances: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Attendance",
-      },
-    ],
-    reviews: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Review",
-      },
-    ],
-
-    // Work info
     shiftStart: { type: String }, // "09:00 AM"
     shiftEnd: { type: String },
-    salary: { type: Number, default: 0 },
     employmentType: {
       type: String,
       enum: ["full_time", "part_time", "contract"],
       default: "full_time",
     },
 
-    // Account status
-    status: {
-      type: String,
-      enum: ["active", "inactive", "blocked"],
-      default: "active",
-    },
-    isVerified: { type: Boolean, default: false },
+    status: { type: String, enum: ["active", "inactive", "blocked"], default: "active" },
 
-    // Audit
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-      default: null,
-    },
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-      default: null,
-    },
+    services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }], // staff कौन services handle करता है
+
+    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
+    appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Appointment" }],
   },
   { timestamps: true }
 );
 
-const Staff = mongoose.model("Staff", StaffSchema);
-
+const Staff = mongoose.model("Staff", staffSchema);
 export default Staff;

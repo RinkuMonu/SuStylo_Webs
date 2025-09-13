@@ -4,111 +4,61 @@ const freelancerSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User", // User of role "freelancer"
       required: true,
     },
 
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
+    leadRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lead", // from which lead this freelancer was created
+      default: null,
     },
 
-    phone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    fullName: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    email: { type: String, trim: true },
 
-    email: {
-      type: String,
-      trim: true,
-    },
-
-    services: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Service",
-      },
-    ],
-
-    employees: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Staff",
-      },
-    ],
+    // Services & Staff
+    services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
+    employees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
 
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        index: "2dsphere",
-      },
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], index: "2dsphere" },
     },
 
-    transportCharge: {
-      type: Number,
-      default: 0,
-    },
-    averageReachTime: {
-      type: Number,
-      default: 30,
-    },
+    transportCharge: { type: Number, default: 0 },
+    averageReachTime: { type: Number, default: 30 }, // minutes
 
     bookingTypes: {
       preBooking: { type: Boolean, default: true },
       urgentBooking: { type: Boolean, default: true },
     },
 
-    isActive: {
-      type: Boolean,
-      default: false,
-    },
     approvalStatus: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    isActive: { type: Boolean, default: false },
 
     rating: {
       average: { type: Number, default: 0 },
       count: { type: Number, default: 0 },
     },
 
+    referrals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Referral" }],
 
-      // 🔗 Referral integration
-    referrals: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Referral",
-      },
-    ],
-
-    // 🔗 Commission integration
     commission: {
       isCommissionApplicable: { type: Boolean, default: true },
-      percentage: { type: Number, default: 10 }, // default 10%
+      percentage: { type: Number, default: 10 },
       commissionsHistory: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Commission",
-        },
+        { type: mongoose.Schema.Types.ObjectId, ref: "Commission" },
       ],
-    },
-
-    createdAt: {
-      type: Date,
-      default: Date.now,
     },
   },
   { timestamps: true }
 );
 
 const Freelancer = mongoose.model("Freelancer", freelancerSchema);
-
 export default Freelancer;
