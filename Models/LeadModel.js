@@ -5,8 +5,8 @@ const leadSchema = new mongoose.Schema(
     // Lead submit kisne kiya (usually User of type "salon" or "freelancer")
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "Admin",
+      required: false,
     },
 
     // Owner / Freelancer name
@@ -25,6 +25,9 @@ const leadSchema = new mongoose.Schema(
 
     // If Salon lead
     salonName: { type: String, trim: true },
+
+    email: { type: String, required: true, trim: true, lowercase: true, match: [/^\S+@\S+\.\S+$/, "Invalid email"] },
+    contact: { type: String, required: true, trim: true },
 
     // Address (common for both Salon & Freelancer)
     address: {
@@ -56,7 +59,7 @@ const leadSchema = new mongoose.Schema(
     // Approval details
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // SuperAdmin/ Admin
+      ref: "Admin", // SuperAdmin/ Admin
       default: null,
     },
     approvedAt: { type: Date },
