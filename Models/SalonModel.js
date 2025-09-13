@@ -9,6 +9,7 @@ const salonSchema = new mongoose.Schema(
     },
 
     leadRef: {
+      
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lead", // from which lead this salon was created
       default: null,
