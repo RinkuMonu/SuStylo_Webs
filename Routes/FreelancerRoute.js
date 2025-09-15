@@ -1,3 +1,57 @@
+// import express from "express";
+// import {
+//   createFreelancer,
+//   getAllFreelancers,
+//   getFreelancerById,
+//   updateFreelancer,
+//   deleteFreelancer,
+//   toggleFreelancerStatus
+// } from "../Controllers/FreelancerController.js";
+// import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
+
+// const router = express.Router();
+
+// router.post(
+//   "/",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed to create freelancer" }),
+//   createFreelancer
+// );
+
+// router.get(
+//   "/",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin" ], { forbiddenMsg: "Only admins can view all freelancers" }),
+//   getAllFreelancers
+// );
+
+// router.get(
+//   "/:id",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+//   getFreelancerById
+// );
+
+// router.put(
+//   "/:id",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+//   updateFreelancer
+// );
+
+// router.delete(
+//   "/:id",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+//   deleteFreelancer
+// );
+
+// router.post(
+//   "/:id/toggle-status",
+//   authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+//   toggleFreelancerStatus
+// );
+
+// export default router;
+
+
+
+
 import express from "express";
 import {
   createFreelancer,
@@ -8,42 +62,47 @@ import {
   toggleFreelancerStatus
 } from "../Controllers/FreelancerController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
+import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js"; // optional, if you plan to upload files like photo/docs
 
 const router = express.Router();
 
+// Admin/SuperAdmin can do all, Freelancer can do some, others none
+
 router.post(
   "/",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed to create freelancer" }),
+  authenticateAndAuthorize(["SuperAdmin", "Admin", "Freelancer"], { forbiddenMsg: "Not allowed to create freelancer" }),
   createFreelancer
 );
 
 router.get(
   "/",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin" ], { forbiddenMsg: "Only admins can view all freelancers" }),
   getAllFreelancers
 );
 
 router.get(
   "/:id",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
   getFreelancerById
 );
 
 router.put(
   "/:id",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"], { forbiddenMsg: "Not allowed" }),
+  uploadToCloudinary("freelancers").fields([
+    { name: "photos", maxCount: 10 },
+    { name: "agreementDocs", maxCount: 5 }
+  ]), // optional
   updateFreelancer
 );
 
 router.delete(
   "/:id",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"], { forbiddenMsg: "Not allowed" }),
   deleteFreelancer
 );
 
 router.post(
   "/:id/toggle-status",
-  authenticateAndAuthorize([ "SuperAdmin", "Admin", "Freelancer" ], { forbiddenMsg: "Not allowed" }),
+  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"], { forbiddenMsg: "Not allowed" }),
   toggleFreelancerStatus
 );
 

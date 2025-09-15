@@ -27,6 +27,10 @@ const freelancerSchema = new mongoose.Schema(
       coordinates: { type: [Number], index: "2dsphere" },
     },
 
+    photos: [{ type: String }],
+    agreementDocs: [{ type: String }],
+    facilities: [{ type: String }],
+
     transportCharge: { type: Number, default: 0 },
     averageReachTime: { type: Number, default: 30 }, // minutes
 

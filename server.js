@@ -8,8 +8,11 @@ import notificationRoutes from "./Routes/NotificationRoutes.js";
 import customerRoutes from "./Routes/CustomerRoute.js";
 import reviewRoutes from "./Routes/ReviewRoute.js";
 import salonRoutes from "./Routes/SalonRoute.js";
+import freelancerRoutes from "./Routes/FreelancerRoute.js";
 import leadRoutes from "./Routes/LeadRoute.js";
 import adminRoutes from "./Routes/AdminRoutes.js";
+import categoryRoutes from "./Routes/CategoryRoute.js";
+import serviceRoutes from "./Routes/ServiceRoute.js";
 dotenv.config();
 const app = express();
 
@@ -23,8 +26,12 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/salons", salonRoutes);
+app.use("/api/freelancer", freelancerRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/admins", adminRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/services", serviceRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
