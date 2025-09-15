@@ -24,6 +24,7 @@ export const uploadToCloudinary = (folderName) => {
     params: (req, file) => {
       let allowedFormats = ["jpg", "jpeg", "png", "webp"];
       // अगर file का mimetype pdf है, तो pdf allow करें
+      
       if (file.mimetype === "application/pdf") {
         allowedFormats.push("pdf");
       }
