@@ -24,6 +24,7 @@ const bookingSchema = new mongoose.Schema(
     ],
 
     comboId: { type: mongoose.Schema.Types.ObjectId, ref: "ServiceCombo" },
+    
 
     schedule: {
       date: { type: Date, required: true },
