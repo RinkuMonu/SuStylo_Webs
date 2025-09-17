@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const scheduleSchema = new mongoose.Schema(
   {
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
-    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // अगर freelancer है
+    // freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
 
     day: {
       type: String,

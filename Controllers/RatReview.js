@@ -51,41 +51,166 @@ export const createOrUpdateReview = async (req, res) => {
 };
 
 // Approve review (Admin / SuperAdmin)
+// export const approveReview = async (req, res) => {
+//   try {
+//     const { reviewId } = req.params;
+//     const review = await Review.findById(reviewId);
+//     if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+
+//     review.status = "approved";
+//     review.approvedBy = req.user._id;
+//     await review.save();
+
+//     // Recalculate average rating
+//     await recalcAverageRating(review.reviewFor, review.targetId);
+
+//     res.json({ success: true, message: "Review approved", review });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// Approve review (Admin / SuperAdmin)
 export const approveReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
     const review = await Review.findById(reviewId);
     if (!review) return res.status(404).json({ success: false, message: "Review not found" });
 
-    review.status = "approved";
-    review.approvedBy = req.user._id;
-    await review.save();
+    // 🔹 Super Admin → sab approve kar sakta hai
+    if (req.user.role === "super_admin") {
+      review.status = "approved";
+      review.approvedBy = req.user._id;
+      await review.save();
+      await recalcAverageRating(review.reviewFor, review.targetId);
+      return res.json({ success: true, message: "Review approved by Super Admin", review });
+    }
 
-    // Recalculate average rating
-    await recalcAverageRating(review.reviewFor, review.targetId);
+    // 🔹 Salon Owner (admin)
+    if (req.user.role === "admin") {
+      if (review.reviewFor === "Salon") {
+        // ✅ Check if salon belongs to this admin
+        const salon = await Salon.findById(review.targetId);
+        if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
 
-    res.json({ success: true, message: "Review approved", review });
+        if (String(salon.owner) !== String(req.user._id)) {
+          return res.status(403).json({ success: false, message: "You can only approve reviews for your own salon!" });
+        }
+      } else if (review.reviewFor === "Staff") {
+        // ✅ Check if staff belongs to this admin's salon
+        const staff = await Staff.findById(review.targetId).populate("salonId");
+        if (!staff) {
+          return res.status(404).json({ success: false, message: "Staff not found" });
+        }
+
+        // yaha `salonId` use karo (na ki staff.salon)
+        if (!staff.salonId || String(staff.salonId.owner) !== String(req.user._id)) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only approve reviews for your own staff!",
+          });
+        }
+      }
+
+      // ✅ Agar yahan tak aa gaya, toh approve allowed hai
+      review.status = "approved";
+      review.approvedBy = req.user._id;
+      await review.save();
+      await recalcAverageRating(review.reviewFor, review.targetId);
+      return res.json({ success: true, message: "Review approved", review });
+    }
+
+    return res.status(403).json({ success: false, message: "Unauthorized action" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+
 // Reject review
+// export const rejectReview = async (req, res) => {
+//   try {
+//     const { reviewId } = req.params;
+//     const review = await Review.findById(reviewId);
+//     if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+
+//     review.status = "rejected";
+//     review.approvedBy = req.user._id;
+//     await review.save();
+
+//     res.json({ success: true, message: "Review rejected", review });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// Reject review (Admin / SuperAdmin)
 export const rejectReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
     const review = await Review.findById(reviewId);
-    if (!review) return res.status(404).json({ success: false, message: "Review not found" });
+    if (!review)
+      return res.status(404).json({ success: false, message: "Review not found" });
 
-    review.status = "rejected";
-    review.approvedBy = req.user._id;
-    await review.save();
+    // 🔹 Super Admin → sab reject kar sakta hai
+    if (req.user.role === "super_admin") {
+      review.status = "rejected";
+      review.approvedBy = req.user._id;
+      await review.save();
+      return res.json({
+        success: true,
+        message: "Review rejected by Super Admin",
+        review,
+      });
+    }
 
-    res.json({ success: true, message: "Review rejected", review });
+    // 🔹 Salon Owner (admin)
+    if (req.user.role === "admin") {
+      if (review.reviewFor === "Salon") {
+        const salon = await Salon.findById(review.targetId);
+        if (!salon)
+          return res.status(404).json({ success: false, message: "Salon not found" });
+
+        if (String(salon.owner) !== String(req.user._id)) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only reject reviews for your own salon!",
+          });
+        }
+      } else if (review.reviewFor === "Staff") {
+        const staff = await Staff.findById(review.targetId).populate("salonId");
+        if (!staff)
+          return res.status(404).json({ success: false, message: "Staff not found" });
+
+        // 🔹 yaha staff.salonId check karna hai
+        if (!staff.salonId || String(staff.salonId.owner) !== String(req.user._id)) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only reject reviews for your own staff!",
+          });
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: "Salon admins cannot reject freelancer reviews!",
+        });
+      }
+
+      // ✅ Agar yahan tak aa gaya toh reject allowed hai
+      review.status = "rejected";
+      review.approvedBy = req.user._id;
+      await review.save();
+      return res.json({ success: true, message: "Review rejected", review });
+    }
+
+    return res
+      .status(403)
+      .json({ success: false, message: "Unauthorized action" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get reviews for a target (only approved)
 export const getReviewsForTarget = async (req, res) => {

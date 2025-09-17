@@ -3,12 +3,12 @@ import mongoose from "mongoose";
 const appointmentSchema = new mongoose.Schema(
   {
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff", required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
+    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
     serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
 
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
-    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
 
     schedule: {
       date: { type: Date, required: true },

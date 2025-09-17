@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
 
 const addressSchema = new mongoose.Schema({
   street: { type: String, trim: true },
@@ -18,6 +20,9 @@ const staffSchema = new mongoose.Schema(
 
     name: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true },
+    password: { type: String, required: true }, // 🔹 added password
+
+
     phone: { type: String, required: true, trim: true },
     gender: { type: String, enum: ["male", "female", "other"] },
     age: { type: Number, min: 0 },
@@ -44,6 +49,14 @@ const staffSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// 🔹 Password hash before save
+staffSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
 const Staff = mongoose.model("Staff", staffSchema);
 export default Staff;

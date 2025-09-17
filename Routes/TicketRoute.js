@@ -4,15 +4,46 @@ import {
   replyTicket,
   getTickets,
   getTicketsByStatus,
-  getTicketsGrouped
+  getTicketsGrouped,
 } from "../controllers/ticketController.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
+
 
 const router = express.Router();
-router.post("/", authMiddleware, raiseTicket);
-router.post("/:ticketId/reply", authMiddleware, replyTicket);
-router.get("/", authMiddleware, getTickets);
-router.get("/status/:status", authMiddleware, getTicketsByStatus);
-router.get("/grouped/status", authMiddleware, getTicketsGrouped);
+
+
+router.post(
+  "/",
+  authenticateAndAuthorize(["user", "staff", "admin", "super_admin"], { unauthorizedMsg: "Login required" }),
+  raiseTicket
+);
+
+
+router.post(
+  "/:ticketId/reply",
+  authenticateAndAuthorize(["staff", "admin", "super_admin"], { forbiddenMsg: "Not allowed to reply to ticket" }),
+  replyTicket
+);
+
+
+router.get(
+  "/",
+  authenticateAndAuthorize(["admin", "super_admin"], { forbiddenMsg: "Not allowed to view tickets" }),
+  getTickets
+);
+
+
+router.get(
+  "/status/:status",
+  authenticateAndAuthorize(["admin", "super_admin"], { forbiddenMsg: "Not allowed to view tickets by status" }),
+  getTicketsByStatus
+);
+
+
+router.get(
+  "/grouped/status",
+  authenticateAndAuthorize(["admin", "super_admin"], { forbiddenMsg: "Not allowed to view grouped tickets" }),
+  getTicketsGrouped
+);
 
 export default router;
