@@ -25,7 +25,11 @@ export const authenticateAndAuthorize = (allowedRoles = [], messages = {}) => {
           return res.status(401).json({ success: false, message: "Invalid token!" });
         }
 
-        req.user = decoded; // decoded = { id, role, name }
+        // req.user = decoded;
+        req.user = {
+          ...decoded,
+          _id: decoded.id || decoded._id,
+        };
 
         // 🔹 Role check
         if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.role)) {

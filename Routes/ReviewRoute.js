@@ -10,17 +10,17 @@ import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
-router.post("/reviews", authenticateAndAuthorize(), createOrUpdateReview);
+router.post("/", authenticateAndAuthorize(), createOrUpdateReview);
 router.put(
-  "/reviews/approve/:reviewId",
-  authenticateAndAuthorize(["admin", "superAdmin"]),
+  "/approve/:reviewId",
+  authenticateAndAuthorize(["admin", "super_admin"]),
   approveReview
 );
 router.put(
-  "/reviews/reject/:reviewId",
-  authenticateAndAuthorize(["admin", "superAdmin"]),
+  "/reject/:reviewId",
+  authenticateAndAuthorize(["admin", "super_admin"]),
   rejectReview
 );
-router.get("/reviews/:reviewFor/:targetId", getReviewsForTarget);
+router.get("/:reviewFor/:targetId", getReviewsForTarget);
 
 export default router;

@@ -26,12 +26,12 @@ router.post("/reset-password", resetAdminPassword);
 // router.put("/update-profile", authenticateAndAuthorize, updateProfile);
 router.put(
   "/update-profile",
-  authenticateAndAuthorize,
+  authenticateAndAuthorize(),
   uploadToCloudinary("admin_avatars").single("avatar"),
   updateProfile
 );
 
-router.get("/details/:id", authenticateAndAuthorize, getAdminDetails);
-router.delete("/delete/:id", authenticateAndAuthorize, deleteAdmin);
+router.get("/details/:id", authenticateAndAuthorize(), getAdminDetails);
+router.delete("/delete/:id", authenticateAndAuthorize(), deleteAdmin);
 
 export default router;

@@ -9,10 +9,16 @@ import customerRoutes from "./Routes/CustomerRoute.js";
 import reviewRoutes from "./Routes/ReviewRoute.js";
 import salonRoutes from "./Routes/SalonRoute.js";
 import freelancerRoutes from "./Routes/FreelancerRoute.js";
+import scheduleRoutes from "./Routes/ScheduleRoute.js";
+import staffRoutes from "./Routes/StaffRoutes.js";
+import attendanceRoutes from "./Routes/AttendanceRoutes.js";
+import appointmentRoutes from "./Routes/AppointmentRoutes.js";
+
 import leadRoutes from "./Routes/LeadRoute.js";
 import adminRoutes from "./Routes/AdminRoutes.js";
 import categoryRoutes from "./Routes/CategoryRoute.js";
 import serviceRoutes from "./Routes/ServiceRoute.js";
+
 dotenv.config();
 const app = express();
 
@@ -27,6 +33,11 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/salons", salonRoutes);
 app.use("/api/freelancer", freelancerRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/staff", staffRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/appointment", appointmentRoutes);
+
 app.use("/api/leads", leadRoutes);
 app.use("/api/admins", adminRoutes);
 app.use("/api/categories", categoryRoutes);
