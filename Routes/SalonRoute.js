@@ -19,7 +19,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  authenticateAndAuthorize(["SuperAdmin", "Admin", "Salon"], { forbiddenMsg: "Not allowed to create salon" }),
+  authenticateAndAuthorize(["super_admin", "admin", "Salon"], { forbiddenMsg: "Not allowed to create salon" }),
   createSalon
 );
 
@@ -35,11 +35,7 @@ router.get(
   getSalonById
 );
 
-// router.put(
-//   "/:id",
-//   authenticateAndAuthorize(["SuperAdmin", "Admin", "Salon"], { forbiddenMsg: "Not allowed" }),
-//   updateSalon
-// );
+
 
 router.put(
   "/:id",

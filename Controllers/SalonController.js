@@ -1,5 +1,6 @@
 import Salon from "../Models/SalonModel.js";
 import Service from "../Models/ServicesModel.js";
+import Staff from "../Models/StaffModel.js";
 import Schedule from "../Models/ScheduleModel.js";
 
 
@@ -12,89 +13,250 @@ export const createSalon = async (req, res) => {
   }
 };
 
+
+
 // export const getAllSalons = async (req, res) => {
 //   try {
-//     const salons = await Salon.find().populate("staff services referrals");
+//     const {
+//       category,
+//       service,
+//       name,
+//       area,
+//       facility,
+//       lat,
+//       lng,
+//       radius // meters → frontend se bhejna hoga
+//     } = req.query;
+
+//     let filter = {};
+
+//     // 🔹 Salon name partial search
+//     if (name) {
+//       filter.salonName = { $regex: name, $options: "i" };
+//     }
+
+//     // 🔹 Area filter
+//     if (area) {
+//       filter["address.area"] = { $regex: area, $options: "i" };
+//     }
+
+//     // 🔹 Facilities filter (regex match for stored string arrays)
+//     if (facility) {
+//       const facilitiesArray = Array.isArray(facility) ? facility : [facility];
+//       filter.$or = facilitiesArray.map(f => ({
+//         facilities: { $regex: f, $options: "i" }
+//       }));
+//     }
+
+//     // 🔹 Nearby filter
+//     if (lat && lng && radius) {
+//       filter.location = {
+//         $geoWithin: {
+//           $centerSphere: [[parseFloat(lng), parseFloat(lat)], radius / 6371000],
+//           // 6371000 = earth radius meters
+//         },
+//       };
+//     }
+
+//     // 🔹 Basic salon fetch
+//     let salons = await Salon.find(filter).populate("referrals");
+
+//     // 🔹 Category / Service filter
+//     if (category || service) {
+//       salons = await Promise.all(
+//         salons.map(async (salon) => {
+//           const services = await Service.find({ salonId: salon._id }).populate("categoryId");
+
+//           let match = true;
+
+//           // 🔹 Category filter
+//           if (category) {
+//             match = services.some(s =>
+//               s.categoryId?.name?.toLowerCase() === category.toLowerCase()
+//             );
+//           }
+
+//           // 🔹 Service filter
+//           if (service) {
+//             match = services.some(s =>
+//               s._id.toString() === service ||
+//               s.name?.toLowerCase().includes(service.toLowerCase())
+//             );
+//           }
+
+//           if (match) {
+//             const staff = await Staff.find({ salonId: salon._id });
+//             return { ...salon.toObject(), services, staff };
+//           }
+//           return null;
+//         })
+//       );
+
+//       salons = salons.filter(Boolean); // null remove
+//     }
+
+//     else {
+//       // Agar category/service filter nahi hai to sab attach karo
+//       salons = await Promise.all(
+//         salons.map(async (salon) => {
+//           const services = await Service.find({ salonId: salon._id });
+//           const staff = await Staff.find({ salonId: salon._id });
+//           return { ...salon.toObject(), services, staff };
+//         })
+//       );
+//     }
 
 //     res.json({ success: true, salons });
 //   } catch (err) {
+//     console.error("getAllSalons Error:", err);
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // };
+
+
 
 export const getAllSalons = async (req, res) => {
   try {
-    // Salon find karo aur staff, referrals populate karo
-    const salons = await Salon.find().populate("staff referrals");
+    const {
+      category,
+      service,
+      name,
+      area,
+      facility,
+      lat,
+      lng,
+      radius,  // meters
+      minRating,
+      maxRating,
+      minPrice,
+      maxPrice
 
-    // Har salon ke liye services fetch karke attach karo
-    const salonsWithServices = await Promise.all(
-      salons.map(async (salon) => {
-        const services = await Service.find({ salonId: salon._id });
-        return { ...salon.toObject(), services };
-      })
-    );
+    } = req.query;
 
-    res.json({ success: true, salons: salonsWithServices });
+    let filter = {};
+
+    // 🔹 Salon name partial search
+    if (name) {
+      filter.salonName = { $regex: name, $options: "i" };
+    }
+
+    // 🔹 Area filter (area, city, state sab cover kare)
+    if (area) {
+      filter.$or = [
+        { "address.area": { $regex: area, $options: "i" } },
+        { "address.city": { $regex: area, $options: "i" } },
+        { "address.state": { $regex: area, $options: "i" } }
+      ];
+    }
+
+
+    // 🔹 Facilities filter
+    if (facility) {
+      filter.facilities = {
+        $in: Array.isArray(facility) ? facility : [facility]
+      };
+    }
+
+    // 🔹 Rating filter
+    if (minRating || maxRating) {
+      filter["rating.average"] = {};
+      if (minRating) filter["rating.average"].$gte = parseFloat(minRating);
+      if (maxRating) filter["rating.average"].$lte = parseFloat(maxRating);
+    }
+
+    // 🔹 Nearby filter
+    if (lat && lng && radius) {
+      filter.location = {
+        $geoWithin: {
+          $centerSphere: [
+            [parseFloat(lng), parseFloat(lat)],
+            radius / 6371000 // 6371000 = earth radius in meters
+          ],
+        },
+      };
+    }
+
+    // 🔹 Basic salon fetch
+    let salons = await Salon.find(filter).populate("referrals");
+
+    // 🔹 Category / Service / Price filter
+    if (category || service || minPrice || maxPrice) {
+      salons = await Promise.all(
+        salons.map(async (salon) => {
+          // All services of this salon
+          const services = await Service.find({ salonId: salon._id }).populate("categoryId");
+
+          let match = true;
+
+          // Category filter
+          if (category) {
+            match = services.some(s =>
+              s.categoryId?.name?.toLowerCase() === category.toLowerCase()
+            );
+          }
+
+          // Service filter
+          if (service && match) {
+            match = services.some(s =>
+              s._id.toString() === service ||
+              s.name?.toLowerCase().includes(service.toLowerCase())
+            );
+          }
+
+          // Price filter
+          if ((minPrice || maxPrice) && match) {
+            match = services.some(s => {
+              const priceToCheck = s.discountPrice || s.price;
+              if (minPrice && priceToCheck < parseFloat(minPrice)) return false;
+              if (maxPrice && priceToCheck > parseFloat(maxPrice)) return false;
+              return true;
+            });
+          }
+
+          if (match) {
+            const staff = await Staff.find({ salonId: salon._id });
+            return { ...salon.toObject(), services, staff };
+          }
+          return null;
+        })
+      );
+
+      salons = salons.filter(Boolean);
+    } else {
+      // Agar category/service/price filter nahi hai to sab attach karo
+      salons = await Promise.all(
+        salons.map(async (salon) => {
+          const services = await Service.find({ salonId: salon._id }).populate("categoryId");
+          const staff = await Staff.find({ salonId: salon._id });
+          return { ...salon.toObject(), services, staff };
+        })
+      );
+    }
+
+    res.json({ success: true, salons });
   } catch (err) {
+    console.error("getAllSalons Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// export const getSalonById = async (req, res) => {
-//   try {
-//     const salon = await Salon.findById(req.params.id).populate("staff services referrals");
-//     if (!salon) return res.status(404).json({ success: false, message: "Salon not found" });
-
-//     res.json({ success: true, salon });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 
 export const getSalonById = async (req, res) => {
   try {
-    const salon = await Salon.findById(req.params.id).populate("staff referrals");
+    const salon = await Salon.findById(req.params.id).populate("referrals");
     if (!salon) {
       return res.status(404).json({ success: false, message: "Salon not found" });
     }
 
-    // services ko alag fetch karo (kyunki wo separate schema me hai)
+    // services + staff alag fetch karo
     const services = await Service.find({ salonId: salon._id });
+    const staff = await Staff.find({ salonId: salon._id });
 
-    res.json({ success: true, salon: { ...salon.toObject(), services } });
+    res.json({ success: true, salon: { ...salon.toObject(), services, staff } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-
-// export const updateSalon = async (req, res) =>  {
-//   try {
-//     let salon;
-
-//     // If Super Admin or Admin: can update any salon
-//     if (["SuperAdmin", "Admin"].includes(req.user.role)) {
-//       salon = await Salon.findByIdAndUpdate(req.params.id, req.body, { new: true });
-//     } else {
-//       // Salon role: only own salon
-//       salon = await Salon.findOneAndUpdate(
-//         { _id: req.params.id, owner: req.user._id },
-//         req.body,
-//         { new: true }
-//       );
-//     }
-
-//     if (!salon) return res.status(404).json({ success: false, message: "Salon not found or unauthorized" });
-
-//     res.json({ success: true, salon });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
 
 export const updateSalon = async (req, res) => {
   try {

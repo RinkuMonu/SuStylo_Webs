@@ -42,10 +42,6 @@ const couponSchema = new mongoose.Schema(
       default: 0,
     },
 
-    maxDiscount: {
-      type: Number,
-      default: 0,
-    },
 
     startDate: {
       type: Date,
@@ -75,7 +71,7 @@ const couponSchema = new mongoose.Schema(
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
     },
   },
   { timestamps: true }

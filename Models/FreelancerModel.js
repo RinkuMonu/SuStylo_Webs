@@ -18,6 +18,23 @@ const freelancerSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     email: { type: String, trim: true },
 
+    // Contact details
+    contact: {
+      phone: { type: String, required: true, trim: true },
+      email: { type: String, trim: true },
+      website: { type: String, trim: true },
+    },
+
+    // Address details
+    address: {
+      street: { type: String, trim: true },
+      area: { type: String, required: true, trim: true },
+      city: { type: String, required: true, trim: true },
+      state: { type: String, trim: true },
+      pinCode: { type: String, trim: true },
+      country: { type: String, trim: true, default: "India" },
+    },
+
     // Services & Staff
     services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
     employees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
