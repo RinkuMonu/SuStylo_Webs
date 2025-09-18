@@ -1,12 +1,44 @@
 import express from "express";
-import { sendToUser, sendToAll } from "../Controllers/Notification.js";
+import {
+  sendNotificationToRole,
+  getAllNotifications,
+  getNotificationById,
+  updateNotification,
+  deleteNotification,
+} from "../Controllers/NotificationController.js";
+import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
-// Send notification to single user
-router.post("/send-notification", sendToUser);
+// 🔒 Super Admin Only
+router.post(
+  "/send-to-role",
+  authenticateAndAuthorize(["superAdmin"]),
+  sendNotificationToRole
+);
 
-// Send notification to all users
-router.post("/send-notification-all", sendToAll);
+router.get(
+  "/",
+  authenticateAndAuthorize(["superAdmin"]),
+  getAllNotifications
+);
+
+router.get(
+  "/:id",
+  authenticateAndAuthorize(["superAdmin"]),
+  getNotificationById
+);
+
+router.put(
+  "/:id",
+  authenticateAndAuthorize(["superAdmin"]),
+  updateNotification
+);
+
+router.delete(
+  "/:id",
+  authenticateAndAuthorize(["superAdmin"]),
+  deleteNotification
+);
 
 export default router;

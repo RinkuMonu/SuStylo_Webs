@@ -185,6 +185,8 @@ const CustomerSchema = new mongoose.Schema(
     // Audit trail
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },
+
+     fcmTokens: [{ type: String }],
   },
   { timestamps: true }
 );

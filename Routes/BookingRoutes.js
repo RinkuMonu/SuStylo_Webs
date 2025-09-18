@@ -1,19 +1,28 @@
 import express from "express";
-import { getBookingHistory, getBookingById } from "../Controllers/BookingController.js";
-import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
+import {
+  createBooking,
+  approveBooking,
+  rejectBooking,
+  cancelBooking,
+  completeBooking,
+} from "../Controllers/BookingController.js";
+import { authenticateAndAuthorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get(
-  "/",
-  authenticateAndAuthorize(["SuperAdmin","Admin","Salon","Staff"], { forbiddenMsg: "Not allowed to view bookings" }),
-  getBookingHistory
-);
+// Customer
+router.post("/", authenticateAndAuthorize(["customer"]), createBooking);
+router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer"]), cancelBooking);
 
-router.get(
-  "/:id",
-  authenticateAndAuthorize(["SuperAdmin","Admin","Salon","Staff"], { forbiddenMsg: "Not allowed to view booking" }),
-  getBookingById
+// Salon/Freelancer
+router.put("/:bookingId/approve", authenticateAndAuthorize(["salon", "freelancer"]), approveBooking);
+router.put("/:bookingId/reject", authenticateAndAuthorize(["salon", "freelancer"]), rejectBooking);
+
+// Admin/Salon/Freelancer (complete after service)
+router.put(
+  "/:bookingId/complete",
+  authenticateAndAuthorize(["admin", "freelancer", "salonOwner"]),
+  completeBooking
 );
 
 export default router;
