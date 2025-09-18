@@ -69,6 +69,7 @@ const serviceComboSchema = new mongoose.Schema(
       maxPeople: { type: Number },
       extraCharges: { type: Number, default: 0 },
     },
+    
 
     status: {
       type: String,
