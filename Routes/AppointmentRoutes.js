@@ -1,13 +1,15 @@
+
+
+
+
+
 import express from "express";
 import {
-  createAppointment,
-  getAppointmentById,
+  assignAppointment,
   getAllAppointments,
   getAppointmentsByStaff,
-  getAppointmentsByUser,
-  updateAppointmentStatus,
-  rescheduleAppointment,
-  updateAppointmentNotes,
+  updateAppointment,
+  cancelAppointment,
   deleteAppointment,
 } from "../Controllers/AppointmentController.js";
 
@@ -15,35 +17,22 @@ import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
-// Create Appointment
-router.post(
-  "/",
-  authenticateAndAuthorize(["admin", "super_admin", "freelancer"]),
-  createAppointment
-);
+// Assign Appointment
+router.post("/", authenticateAndAuthorize(["admin"]), assignAppointment);
 
-// Get by ID
-router.get("/:id", authenticateAndAuthorize(["admin", "super_admin", "freelancer", "user"]), getAppointmentById);
+// Get All Appointments (Salon level)
+router.get("/", authenticateAndAuthorize(["admin"]), getAllAppointments);
 
-// Get all (role based filter)
-router.get("/", authenticateAndAuthorize(["admin", "super_admin", "freelancer"]), getAllAppointments);
+// Get Appointments by Staff
+router.get("/staff/:staffId", authenticateAndAuthorize(["admin"]), getAppointmentsByStaff);
 
-// Get by Staff (only salon owner & super admin)
-router.get("/staff/:staffId", authenticateAndAuthorize(["admin", "super_admin"]), getAppointmentsByStaff);
+// Update Appointment
+router.put("/:id", authenticateAndAuthorize(["admin"]), updateAppointment);
 
-// Get by User
-router.get("/user/:userId", authenticateAndAuthorize(["user", "admin", "super_admin", "freelancer"]), getAppointmentsByUser);
-
-// Update Status
-router.put("/status/:id", authenticateAndAuthorize(["admin", "super_admin", "freelancer"]), updateAppointmentStatus);
-
-// Reschedule
-router.put("/reschedule/:id", authenticateAndAuthorize(["admin", "super_admin", "freelancer"]), rescheduleAppointment);
-
-// Update Notes
-router.put("/notes/:id", authenticateAndAuthorize(["admin", "super_admin", "freelancer", "user"]), updateAppointmentNotes);
+// Cancel Appointment
+router.put("/cancel/:id", authenticateAndAuthorize(["admin"]), cancelAppointment);
 
 // Delete Appointment
-router.delete("/:id", authenticateAndAuthorize(["admin", "super_admin", "freelancer"]), deleteAppointment);
+router.delete("/:id", authenticateAndAuthorize(["admin"]), deleteAppointment);
 
 export default router;

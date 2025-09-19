@@ -19,6 +19,9 @@ import adminRoutes from "./Routes/AdminRoutes.js";
 import categoryRoutes from "./Routes/CategoryRoute.js";
 import serviceRoutes from "./Routes/ServiceRoute.js";
 import couponRoutes from "./Routes/CouponRoutes.js";
+import serviceComboRoutes from "./Routes/ServiceComboRoutes.js";
+import contactRoutes from "./Routes/ContactRoutes.js";
+
 
 dotenv.config();
 const app = express();
@@ -44,6 +47,9 @@ app.use("/api/admins", adminRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/coupon", couponRoutes);
+app.use("/api/service-combos", serviceComboRoutes);
+app.use("/api/contacts", contactRoutes);
+
 
 
 const PORT = process.env.PORT || 5000;

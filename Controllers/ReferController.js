@@ -126,6 +126,7 @@ export const getReferralHistory = async (req, res) => {
         totalPages: Math.ceil(totalReferrals / limit),
       },
     });
+    
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error: " + err.message });
   }

@@ -5,12 +5,10 @@ const serviceComboSchema = new mongoose.Schema(
     salon: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Salon",
-      required: false,
     },
     freelancer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Freelancer",
-      required: false,
     },
 
     title: {
@@ -43,33 +41,21 @@ const serviceComboSchema = new mongoose.Schema(
       },
     ],
 
+    totalPrice: {
+      type: Number, // sum of all service prices
+      default: 0,
+    },
+
     basePrice: {
-      type: Number,
+      type: Number, // discounted price
       required: true,
       min: 0,
     },
 
-    groupDiscounts: [
-      {
-        minPeople: { type: Number, required: true },
-        maxPeople: { type: Number },
-        discountPercentage: { type: Number, required: true },
-      },
-    ],
-
-    isEvent: {
-      type: Boolean,
-      default: false,
+    discountPercentage: {
+      type: Number,
+      default: 0,
     },
-    eventDetails: {
-      eventType: {
-        type: String,
-        enum: ["wedding", "party", "corporate", "festival", "other"],
-      },
-      maxPeople: { type: Number },
-      extraCharges: { type: Number, default: 0 },
-    },
-    
 
     status: {
       type: String,
