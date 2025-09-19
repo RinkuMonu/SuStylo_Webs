@@ -15,6 +15,9 @@ const serviceSchema = new mongoose.Schema(
     duration: { type: Number, required: true }, // in minutes
     gender: { type: String, enum: ["male", "female", "unisex"], default: "unisex" },
 
+    image: { type: String },  // 🔹 Cloudinary image URL save करने के लिए field
+
+
     isActive: { type: Boolean, default: true },
     popular: { type: Boolean, default: false },
 
