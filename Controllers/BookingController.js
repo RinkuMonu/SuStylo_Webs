@@ -1,40 +1,151 @@
-import Booking from "../Models/BookingModel.js";
-import Staff from "../Models/StaffModel.js";
+import Booking from "../models/Booking.js";
+import Wallet from "../models/Wallet.js";
 
-export const getBookingHistory = async (req, res) => {
+
+export const completeBooking = async (req, res) => {
   try {
-    let bookings;
-    if (["SuperAdmin", "Admin"].includes(req.user.role)) {
-      bookings = await Booking.find().populate("userId salonId freelancerId staffId services.serviceId");
-    } else if (req.user.role === "Salon") {
-      bookings = await Booking.find({ salonId: req.user.salonId }).populate("userId staffId services.serviceId");
-    } else if (req.user.role === "Staff") {
-      // for staff, show only bookings assigned to this staff
-      bookings = await Booking.find({ staffId: req.user.staffId }).populate("userId salonId services.serviceId");
-    } else {
-      return res.status(403).json({ success: false, message: "Forbidden" });
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId)
+      .populate("user")
+      .populate("salon")
+      .populate("freelancer");
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
-    res.json({ success: true, bookings });
+
+    if (booking.status === "completed") {
+      return res.status(400).json({ success: false, message: "Booking already completed" });
+    }
+
+    // 🔹 Role-based check
+    if (req.user.role === "freelancer") {
+      if (!booking.freelancer || booking.freelancer._id.toString() !== req.user.id) {
+        return res.status(403).json({ success: false, message: "Not authorized to complete this booking" });
+      }
+    }
+
+    if (req.user.role === "salonOwner") {
+      if (!booking.salon || booking.salon._id.toString() !== req.user.id) {
+        return res.status(403).json({ success: false, message: "Not authorized to complete this booking" });
+      }
+    }
+
+    booking.status = "completed";
+    booking.updatedAt = Date.now();
+    await booking.save();
+
+    // 🔹 Cash Payment → settle from salon/freelancer wallet
+    if (booking.paymentType === "cash") {
+      const targetOwner = booking.salon || booking.freelancer;
+      if (targetOwner) {
+        let wallet = await Wallet.findOne({ ownerId: targetOwner._id });
+        if (!wallet) {
+          wallet = new Wallet({ ownerId: targetOwner._id, balance: 0, transactions: [] });
+        }
+
+        wallet.balance -= booking.totalAmount;
+        wallet.transactions.push({
+          type: "debit",
+          amount: booking.totalAmount,
+          description: `Cash booking settlement for Booking #${booking._id}`,
+        });
+
+        await wallet.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking marked as completed successfully",
+      booking,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Complete booking error:", err);
+    res.status(500).json({ success: false, message: "Error completing booking", error: err.message });
   }
 };
 
-export const getBookingById = async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id).populate("userId salonId freelancerId staffId services.serviceId");
-    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
 
-    if (
-      ["SuperAdmin", "Admin"].includes(req.user.role) ||
-      (req.user.role === "Salon" && String(booking.salonId) === String(req.user.salonId)) ||
-      (req.user.role === "Staff" && String(booking.staffId) === String(req.user.staffId))
-    ) {
-      res.json({ success: true, booking });
-    } else {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
+export const cancelBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { reason } = req.body;
+
+    const booking = await Booking.findById(bookingId).populate("user");
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
+
+    if (booking.status === "completed") {
+      return res.status(400).json({ success: false, message: "Completed booking cannot be cancelled" });
+    }
+
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ success: false, message: "Booking already cancelled" });
+    }
+
+    // Only customer or admin can cancel
+    if (req.user.role === "customer" && booking.user._id.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Not authorized to cancel this booking" });
+    }
+
+    booking.status = "cancelled";
+    booking.cancellationReason = reason || "Cancelled by user";
+    booking.updatedAt = Date.now();
+
+    let refundAmount = 0;
+
+    if (booking.paymentType !== "cash" && booking.paymentStatus === "paid") {
+      // Refund to customer wallet
+      refundAmount = booking.totalAmount;
+
+      let userWallet = await Wallet.findOne({ ownerId: booking.user._id });
+      if (!userWallet) {
+        userWallet = new Wallet({ ownerId: booking.user._id, balance: 0, transactions: [] });
+      }
+
+      userWallet.balance += refundAmount;
+      userWallet.transactions.push({
+        type: "credit",
+        amount: refundAmount,
+        description: `Refund for cancelled booking #${booking._id}`,
+      });
+
+      await userWallet.save();
+    } else if (booking.paymentType === "cash") {
+      // Cash case → salon/freelancer wallet deduct karega
+      const targetOwner = booking.salon || booking.freelancer;
+      if (targetOwner) {
+        let wallet = await Wallet.findOne({ ownerId: targetOwner._id });
+        if (!wallet) {
+          wallet = new Wallet({ ownerId: targetOwner._id, balance: 0, transactions: [] });
+        }
+
+        wallet.balance -= booking.totalAmount;
+        wallet.transactions.push({
+          type: "debit",
+          amount: booking.totalAmount,
+          description: `Cash booking cancelled for Booking #${booking._id}`,
+        });
+
+        await wallet.save();
+      }
+    }
+
+    booking.refundAmount = refundAmount;
+    await booking.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking cancelled successfully",
+      refundAmount,
+      booking,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Cancel booking error:", err);
+    res.status(500).json({ success: false, message: "Error cancelling booking", error: err.message });
   }
 };
