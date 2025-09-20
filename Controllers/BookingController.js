@@ -1,13 +1,15 @@
 import Booking from "../Models/BookingModel.js";
-import Coupon from "../Models/CouponModel.js"; // मान लो coupon schema है
+import Coupon from "../Models/CouponModel.js"; 
 import WalletTransaction from "../Models/WalletTransaction.js";
 import Salon from "../Models/SalonModel.js";
 import Freelancer from "../Models/FreelancerModel.js";
 import mongoose from "mongoose";
+import { completeReferralReward } from "../Controllers/ReferController.js";
+
 
 export const createBooking = async (req, res) => {
   try {
-    const userId = req.user?._id; // login check (auth middleware से आएगा)
+    const userId = req.user?._id;
     if (!userId) {
       return res.status(401).json({ message: "Please login to continue" });
     }
@@ -21,6 +23,8 @@ export const createBooking = async (req, res) => {
       schedule,
       couponCode,
       transportCharges,
+      staffId,
+      event,
     } = req.body;
 
     // Base price निकालना (services + combo)
@@ -31,7 +35,6 @@ export const createBooking = async (req, res) => {
 
     // अगर combo है तो उसका price add
     if (comboId) {
-      // मान लो ServiceCombo model है
       const combo = await mongoose.model("ServiceCombo").findById(comboId);
       if (combo) baseAmount += combo.basePrice;
     }
@@ -94,7 +97,7 @@ export const updateBookingStatusByProvider = async (req, res) => {
 export const confirmBookingPayment = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { paymentType, transactionId, couponCode } = req.body;
+    const { paymentType, transactionId } = req.body;
 
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -125,6 +128,9 @@ export const completeBooking = async (req, res) => {
 
     booking.status = "completed";
     await booking.save();
+
+    // ⬇️ Referral reward trigger (80% release)
+    await completeReferralReward({ userBId: booking.userId, bookingId: booking._id });
 
     res.json({ message: "Booking completed successfully", booking });
   } catch (error) {
