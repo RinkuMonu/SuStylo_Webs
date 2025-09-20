@@ -21,6 +21,8 @@ import serviceRoutes from "./Routes/ServiceRoute.js";
 import couponRoutes from "./Routes/CouponRoutes.js";
 import serviceComboRoutes from "./Routes/ServiceComboRoutes.js";
 import contactRoutes from "./Routes/ContactRoutes.js";
+import referralRoutes from "./Routes/ReferRoute.js";
+import payRoutes from "./Routes/PaymentRoutes.js";
 
 
 dotenv.config();
@@ -49,7 +51,8 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/coupon", couponRoutes);
 app.use("/api/service-combos", serviceComboRoutes);
 app.use("/api/contacts", contactRoutes);
-
+app.use("/api/referral", referralRoutes);
+app.use("/api/pay", payRoutes);
 
 
 const PORT = process.env.PORT || 5000;

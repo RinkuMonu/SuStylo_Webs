@@ -3,20 +3,88 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import fast2sms from "fast-two-sms";
+import Wallet from "../Models/WalletModel.js";
+
 dotenv.config();
+
+// export const registerCustomer = async (req, res) => {
+//   try {
+//     const { name, email, phone, password, gender, age } = req.body;
+
+//     // Hash password first
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Profile Image (Cloudinary via multer)
+//     let avatarUrl = null;
+//     if (req.file && req.file.path) {
+//       avatarUrl = req.file.path; // store full URL
+//     }
+
+//     // Check if a customer exists (even soft deleted)
+//     let customer = await Customer.findOne({ $or: [{ email }, { phone }] });
+
+//     if (customer) {
+//       if (customer.isDeleted) {
+//         // Reactivate old customer
+//         customer.name = name;
+//         customer.email = email;
+//         customer.phone = phone;
+//         customer.passwordHash = hashedPassword;
+//         customer.gender = gender;
+//         customer.age = age;
+//         if (avatarUrl) customer.avatarUrl = avatarUrl;
+//         customer.status = "active";
+//         customer.isActive = true;
+//         customer.isDeleted = false;
+//         customer.isVerified = true; // optional: after OTP verification
+//         await customer.save();
+
+//         return res.status(200).json({
+//           success: true,
+//           message: "Customer re-registered successfully",
+//           customer,
+//         });
+//       } else {
+//         return res.status(400).json({ success: false, message: "User already exists!" });
+//       }
+//     }
+
+//     // If no existing customer, create new
+//     customer = await Customer.create({
+//       name,
+//       email,
+//       phone,
+//       passwordHash: hashedPassword,
+//       gender,
+//       age,
+//       avatarUrl,
+//       status: "active",
+//       isActive: true,
+//       isVerified: true, // optional
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Customer registered successfully",
+//       customer,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 
 export const registerCustomer = async (req, res) => {
   try {
     const { name, email, phone, password, gender, age } = req.body;
 
-    // Hash password first
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Profile Image (Cloudinary via multer)
     let avatarUrl = null;
     if (req.file && req.file.path) {
-      const cloudUrl = req.file.path;
-      avatarUrl = cloudUrl.substring(cloudUrl.indexOf("/upload/"));
+      avatarUrl = req.file.path;
     }
 
     // Check if a customer exists (even soft deleted)
@@ -35,13 +103,24 @@ export const registerCustomer = async (req, res) => {
         customer.status = "active";
         customer.isActive = true;
         customer.isDeleted = false;
-        customer.isVerified = true; // optional: after OTP verification
+        customer.isVerified = true;
         await customer.save();
+
+        // ✅ Ensure wallet exists
+        let wallet = await Wallet.findOne({ owner: customer._id, ownerModel: "User" });
+        if (!wallet) {
+          wallet = await Wallet.create({
+            owner: customer._id,
+            ownerModel: "User",
+            balance: 0,
+          });
+        }
 
         return res.status(200).json({
           success: true,
           message: "Customer re-registered successfully",
           customer,
+          wallet,
         });
       } else {
         return res.status(400).json({ success: false, message: "User already exists!" });
@@ -59,13 +138,21 @@ export const registerCustomer = async (req, res) => {
       avatarUrl,
       status: "active",
       isActive: true,
-      isVerified: true, // optional
+      isVerified: true,
+    });
+
+    // ✅ Create wallet on registration
+    const wallet = await Wallet.create({
+      owner: customer._id,
+      ownerModel: "User",
+      balance: 0,
     });
 
     res.status(201).json({
       success: true,
       message: "Customer registered successfully",
       customer,
+      wallet,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

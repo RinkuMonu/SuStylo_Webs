@@ -1,36 +1,79 @@
-import Referral from "../models/Referral.js";
-import Wallet from "../models/Wallet.js";
-import Setting from "../models/Setting.js";
-import Customer from "../models/Customer.js";
+import Referral from "../Models/ReferralModel.js";
+import Wallet from "../Models/WalletModel.js";
 
-/**
- * ✅ Create Referral (Accessible by users)
- */
-export const createReferral = async (req, res) => {
+// 🔹 SuperAdmin: Update Global Reward
+export const updateReferralReward = async (req, res) => {
   try {
-    const { referredTo } = req.body;
-    const referredBy = req.user._id; // 🔹 logged-in user se directly
-
-    // Check valid users
-    const refBy = await Customer.findById(referredBy);
-    const refTo = await Customer.findById(referredTo);
-    if (!refBy || !refTo) {
-      return res.status(400).json({ message: "Invalid referrer or referee" });
+    const { amount } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid reward amount" });
     }
 
-    // Reward amount fetch from settings
-    const setting = await Setting.findOne({ key: "referralReward" });
-    const rewardAmount = setting ? setting.value : 50; // default 50
+    const setting = await Referral.findOneAndUpdate(
+      { isGlobalSetting: true },
+      { rewardAmount: amount },
+      { upsert: true, new: true }
+    );
 
-    // Referral entry
+    res.json({ success: true, message: "Referral reward updated", reward: setting.rewardAmount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error: " + err.message });
+  }
+};
+
+
+// 🔹 Create Referral (User A → User B)
+export const createReferral = async (req, res) => {
+  try {
+    const { referredTo } = req.body;   // User B ka id
+    const referredBy = req.user._id;   // User A ka id (token se)
+
+    if (!referredTo) {
+      return res.status(400).json({ success: false, message: "ReferredTo (User B id) required" });
+    }
+
+    if (referredBy.toString() === referredTo.toString()) {
+      return res.status(400).json({ success: false, message: "You cannot refer yourself" });
+    }
+
+    // ✅ Check if User B is already referred by ANY user
+    const alreadyReferred = await Referral.findOne({
+      referredTo,
+      isGlobalSetting: false
+    });
+    if (alreadyReferred) {
+      return res.status(400).json({
+        success: false,
+        message: "This user is already referred by someone else"
+      });
+    }
+
+    // ✅ Check duplicate referral (same A → same B)
+    const existingReferral = await Referral.findOne({
+      referredBy,
+      referredTo,
+      isGlobalSetting: false
+    });
+    if (existingReferral) {
+      return res.status(400).json({
+        success: false,
+        message: "You already referred this user"
+      });
+    }
+
+    // Global reward fetch
+    const globalSetting = await Referral.findOne({ isGlobalSetting: true });
+    const rewardAmount = globalSetting ? globalSetting.rewardAmount : 100;
+
+    // Referral entry banate hi referralCode auto-generate ho jayega
     const referral = await Referral.create({
       referredBy,
       referredTo,
       rewardAmount,
-      status: "rewarded",
+      status: "rewarded"
     });
 
-    // Wallet update
+    // Find or create wallet for User A
     let wallet = await Wallet.findOne({ owner: referredBy, ownerModel: "User" });
     if (!wallet) {
       wallet = await Wallet.create({
@@ -41,13 +84,13 @@ export const createReferral = async (req, res) => {
       });
     }
 
-    // Transaction push
+    // Wallet transaction
     const transaction = {
       type: "credit",
       amount: rewardAmount,
       method: "referral",
       relatedUser: referredTo,
-      description: `Referral reward for referring user ${refTo.name}`,
+      description: `Referral reward for referring user`,
     };
 
     wallet.transactions.push(transaction);
@@ -59,130 +102,33 @@ export const createReferral = async (req, res) => {
 
     res.status(201).json({ success: true, referral, wallet });
   } catch (err) {
-    console.error("Referral Error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-/**
- * ✅ Super Admin: Update Referral Reward
- */
-export const updateReferralReward = async (req, res) => {
-  try {
-    const { amount } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid reward amount" });
-    }
-
-    const setting = await Setting.findOneAndUpdate(
-      { key: "referralReward" },
-      { value: amount },
-      { upsert: true, new: true }
-    );
-
-    res.json({
-      success: true,
-      message: "Referral reward updated successfully",
-      setting,
-    });
-  } catch (err) {
     res.status(500).json({ success: false, message: "Server error: " + err.message });
   }
 };
 
+// 🔹 Get Referral History (User A)
 export const getReferralHistory = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const referrals = await Referral.find({ referredBy: req.user._id, isGlobalSetting: false })
+      .populate("referredTo", "name email")
+      .sort({ createdAt: -1 });
 
-    // Query params
-    let { page = 1, limit = 10 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
-    const skip = (page - 1) * limit;
-
-    // Find referrals with pagination
-    const referrals = await Referral.find({ referredBy: userId })
-      .populate("referredTo", "name email phone")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    // Total count for pagination
-    const totalReferrals = await Referral.countDocuments({ referredBy: userId });
-
-    // Find wallet details
-    const wallet = await Wallet.findOne({ owner: userId, ownerModel: "User" });
-
-    res.json({
-      success: true,
-      referrals,
-      wallet,
-      pagination: {
-        total: totalReferrals,
-        page,
-        limit,
-        totalPages: Math.ceil(totalReferrals / limit),
-      },
-    });
-    
+    res.json({ success: true, referrals });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error: " + err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// 🔹 Get All Referrals (Super Admin)
 export const getAllReferrals = async (req, res) => {
   try {
-    let { page = 1, limit = 10, status, fromDate, toDate, search } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-    const skip = (page - 1) * limit;
+    const referrals = await Referral.find({ isGlobalSetting: false })
+      .populate("referredBy", "name email")
+      .populate("referredTo", "name email")
+      .sort({ createdAt: -1 });
 
-    // Build filter
-    const filter = {};
-
-    // 🔹 Status filter
-    if (status) {
-      filter.status = status;
-    }
-
-    // 🔹 Date range filter
-    if (fromDate || toDate) {
-      filter.createdAt = {};
-      if (fromDate) filter.createdAt.$gte = new Date(fromDate);
-      if (toDate) filter.createdAt.$lte = new Date(toDate);
-    }
-
-    // 🔹 Search by referralCode or referee name/email/phone
-    if (search) {
-      filter.$or = [
-        { referralCode: { $regex: search, $options: "i" } },
-        { notes: { $regex: search, $options: "i" } }
-      ];
-    }
-
-    // Fetch referrals with pagination
-    const referrals = await Referral.find(filter)
-      .populate("referredBy", "name email phone")
-      .populate("referredTo", "name email phone")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Referral.countDocuments(filter);
-
-    res.json({
-      success: true,
-      referrals,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    res.json({ success: true, referrals });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error: " + err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
