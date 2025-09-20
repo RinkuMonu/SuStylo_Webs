@@ -1,28 +1,28 @@
 import express from "express";
 import {
   createBooking,
-  approveBooking,
-  rejectBooking,
-  cancelBooking,
+  updateBookingStatusByProvider,
+  confirmBookingPayment,
   completeBooking,
+  cancelBooking,
 } from "../Controllers/BookingController.js";
-import { authenticateAndAuthorize } from "../middlewares/authMiddleware.js";
+import { authenticateAndAuthorize } from "../Middleware/auth.js";
 
 const router = express.Router();
 
-// Customer
+// Customer creates booking
 router.post("/", authenticateAndAuthorize(["customer"]), createBooking);
-router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer"]), cancelBooking);
 
-// Salon/Freelancer
-router.put("/:bookingId/approve", authenticateAndAuthorize(["salon", "freelancer"]), approveBooking);
-router.put("/:bookingId/reject", authenticateAndAuthorize(["salon", "freelancer"]), rejectBooking);
+// Salon/Freelancer approve/reject booking
+router.put("/:bookingId/status", authenticateAndAuthorize(["salon", "freelancer", "admin"]), updateBookingStatusByProvider);
 
-// Admin/Salon/Freelancer (complete after service)
-router.put(
-  "/:bookingId/complete",
-  authenticateAndAuthorize(["admin", "freelancer", "salonOwner"]),
-  completeBooking
-);
+// Customer confirms with payment
+router.put("/:bookingId/confirm", authenticateAndAuthorize(["customer"]), confirmBookingPayment);
+
+// Mark booking complete
+router.put("/:bookingId/complete", authenticateAndAuthorize(["salon", "freelancer"]), completeBooking);
+
+// Cancel booking
+router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer", "admin"]), cancelBooking);
 
 export default router;
