@@ -15,7 +15,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  authenticateAndAuthorize(["super_admin", "Admin", "Salon", "Freelancer"]),
+  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"]),
   uploadToCloudinary("services").single("image"), // ⬅️ store in "services" folder
   createService
 );
