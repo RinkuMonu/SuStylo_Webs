@@ -1,151 +1,151 @@
-import Booking from "../models/Booking.js";
-import Wallet from "../models/Wallet.js";
+import Booking from "../Models/BookingModel.js";
+import Coupon from "../Models/CouponModel.js"; // मान लो coupon schema है
+import WalletTransaction from "../Models/WalletTransaction.js";
+import Salon from "../Models/SalonModel.js";
+import Freelancer from "../Models/FreelancerModel.js";
+import mongoose from "mongoose";
 
+export const createBooking = async (req, res) => {
+  try {
+    const userId = req.user?._id; // login check (auth middleware से आएगा)
+    if (!userId) {
+      return res.status(401).json({ message: "Please login to continue" });
+    }
+
+    const {
+      bookingType,
+      salonId,
+      freelancerId,
+      services,
+      comboId,
+      schedule,
+      couponCode,
+      transportCharges,
+    } = req.body;
+
+    // Base price निकालना (services + combo)
+    let baseAmount = 0;
+    services.forEach(s => {
+      baseAmount += s.price * (s.quantity || 1);
+    });
+
+    // अगर combo है तो उसका price add
+    if (comboId) {
+      // मान लो ServiceCombo model है
+      const combo = await mongoose.model("ServiceCombo").findById(comboId);
+      if (combo) baseAmount += combo.basePrice;
+    }
+
+    let discountAmount = 0;
+
+    // Coupon apply
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
+      if (coupon) {
+        discountAmount = (baseAmount * coupon.discountPercent) / 100;
+      }
+    }
+
+    const totalAmount = baseAmount - discountAmount + (transportCharges || 0);
+
+    const newBooking = await Booking.create({
+      bookingType,
+      userId,
+      salonId,
+      freelancerId,
+      staffId,
+      services,
+      comboId,
+      schedule,
+      baseAmount,
+      discountAmount,
+      transportCharges,
+      totalAmount,
+      event,
+      status: "pending",
+    });
+
+    res.status(201).json({
+      message: "Booking request sent to Salon/Freelancer",
+      booking: newBooking,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating booking", error: error.message });
+  }
+};
+
+export const updateBookingStatusByProvider = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { status } = req.body; // approved / rejected
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    booking.status = status;
+    await booking.save();
+
+    res.json({ message: `Booking ${status} successfully`, booking });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating booking status", error: error.message });
+  }
+};
+
+export const confirmBookingPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { paymentType, transactionId, couponCode } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    if (booking.status !== "approved") {
+      return res.status(400).json({ message: "Booking is not approved yet" });
+    }
+
+    booking.paymentType = paymentType;
+    booking.transactionId = transactionId || null;
+    booking.paymentStatus = paymentType === "cash" ? "pending" : "paid";
+    booking.status = "confirmed";
+
+    await booking.save();
+
+    res.json({ message: "Booking confirmed with payment", booking });
+  } catch (error) {
+    res.status(500).json({ message: "Error confirming booking", error: error.message });
+  }
+};
 
 export const completeBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
-    const booking = await Booking.findById(bookingId)
-      .populate("user")
-      .populate("salon")
-      .populate("freelancer");
-
-    if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
-    }
-
-    if (booking.status === "completed") {
-      return res.status(400).json({ success: false, message: "Booking already completed" });
-    }
-
-    // 🔹 Role-based check
-    if (req.user.role === "freelancer") {
-      if (!booking.freelancer || booking.freelancer._id.toString() !== req.user.id) {
-        return res.status(403).json({ success: false, message: "Not authorized to complete this booking" });
-      }
-    }
-
-    if (req.user.role === "salonOwner") {
-      if (!booking.salon || booking.salon._id.toString() !== req.user.id) {
-        return res.status(403).json({ success: false, message: "Not authorized to complete this booking" });
-      }
-    }
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
 
     booking.status = "completed";
-    booking.updatedAt = Date.now();
     await booking.save();
 
-    // 🔹 Cash Payment → settle from salon/freelancer wallet
-    if (booking.paymentType === "cash") {
-      const targetOwner = booking.salon || booking.freelancer;
-      if (targetOwner) {
-        let wallet = await Wallet.findOne({ ownerId: targetOwner._id });
-        if (!wallet) {
-          wallet = new Wallet({ ownerId: targetOwner._id, balance: 0, transactions: [] });
-        }
-
-        wallet.balance -= booking.totalAmount;
-        wallet.transactions.push({
-          type: "debit",
-          amount: booking.totalAmount,
-          description: `Cash booking settlement for Booking #${booking._id}`,
-        });
-
-        await wallet.save();
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Booking marked as completed successfully",
-      booking,
-    });
-  } catch (err) {
-    console.error("Complete booking error:", err);
-    res.status(500).json({ success: false, message: "Error completing booking", error: err.message });
+    res.json({ message: "Booking completed successfully", booking });
+  } catch (error) {
+    res.status(500).json({ message: "Error completing booking", error: error.message });
   }
 };
-
 
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { reason } = req.body;
 
-    const booking = await Booking.findById(bookingId).populate("user");
-
-    if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
-    }
-
-    if (booking.status === "completed") {
-      return res.status(400).json({ success: false, message: "Completed booking cannot be cancelled" });
-    }
-
-    if (booking.status === "cancelled") {
-      return res.status(400).json({ success: false, message: "Booking already cancelled" });
-    }
-
-    // Only customer or admin can cancel
-    if (req.user.role === "customer" && booking.user._id.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, message: "Not authorized to cancel this booking" });
-    }
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
 
     booking.status = "cancelled";
-    booking.cancellationReason = reason || "Cancelled by user";
-    booking.updatedAt = Date.now();
-
-    let refundAmount = 0;
-
-    if (booking.paymentType !== "cash" && booking.paymentStatus === "paid") {
-      // Refund to customer wallet
-      refundAmount = booking.totalAmount;
-
-      let userWallet = await Wallet.findOne({ ownerId: booking.user._id });
-      if (!userWallet) {
-        userWallet = new Wallet({ ownerId: booking.user._id, balance: 0, transactions: [] });
-      }
-
-      userWallet.balance += refundAmount;
-      userWallet.transactions.push({
-        type: "credit",
-        amount: refundAmount,
-        description: `Refund for cancelled booking #${booking._id}`,
-      });
-
-      await userWallet.save();
-    } else if (booking.paymentType === "cash") {
-      // Cash case → salon/freelancer wallet deduct karega
-      const targetOwner = booking.salon || booking.freelancer;
-      if (targetOwner) {
-        let wallet = await Wallet.findOne({ ownerId: targetOwner._id });
-        if (!wallet) {
-          wallet = new Wallet({ ownerId: targetOwner._id, balance: 0, transactions: [] });
-        }
-
-        wallet.balance -= booking.totalAmount;
-        wallet.transactions.push({
-          type: "debit",
-          amount: booking.totalAmount,
-          description: `Cash booking cancelled for Booking #${booking._id}`,
-        });
-
-        await wallet.save();
-      }
-    }
-
-    booking.refundAmount = refundAmount;
+    booking.cancellationReason = reason;
     await booking.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Booking cancelled successfully",
-      refundAmount,
-      booking,
-    });
-  } catch (err) {
-    console.error("Cancel booking error:", err);
-    res.status(500).json({ success: false, message: "Error cancelling booking", error: err.message });
+    res.json({ message: "Booking cancelled", booking });
+  } catch (error) {
+    res.status(500).json({ message: "Error cancelling booking", error: error.message });
   }
 };
