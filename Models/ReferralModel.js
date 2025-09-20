@@ -12,13 +12,13 @@ const ReferralSchema = new mongoose.Schema(
     // Referral reward amount
     rewardAmount: { type: Number, default: 100 },
 
-    // Status
+
     status: {
       type: String,
-      enum: ["pending", "rewarded", "cancelled"],
+      enum: ["pending", "partial_rewarded", "fully_rewarded", "cancelled"],
       default: "pending",
     },
-  
+
     // Wallet Transaction 
     walletTransactionId: {
       type: mongoose.Schema.Types.ObjectId,

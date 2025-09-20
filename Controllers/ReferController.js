@@ -21,7 +21,6 @@ export const updateReferralReward = async (req, res) => {
   }
 };
 
-
 // 🔹 Create Referral (User A → User B)
 export const createReferral = async (req, res) => {
   try {
@@ -36,45 +35,25 @@ export const createReferral = async (req, res) => {
       return res.status(400).json({ success: false, message: "You cannot refer yourself" });
     }
 
-    // ✅ Check if User B is already referred by ANY user
-    const alreadyReferred = await Referral.findOne({
-      referredTo,
-      isGlobalSetting: false
-    });
+    // ✅ Check if User B is already referred
+    const alreadyReferred = await Referral.findOne({ referredTo, isGlobalSetting: false });
     if (alreadyReferred) {
-      return res.status(400).json({
-        success: false,
-        message: "This user is already referred by someone else"
-      });
+      return res.status(400).json({ success: false, message: "This user is already referred by someone else" });
     }
 
-    // ✅ Check duplicate referral (same A → same B)
-    const existingReferral = await Referral.findOne({
-      referredBy,
-      referredTo,
-      isGlobalSetting: false
-    });
-    if (existingReferral) {
-      return res.status(400).json({
-        success: false,
-        message: "You already referred this user"
-      });
-    }
-
-    // Global reward fetch
+    // ✅ Global reward fetch
     const globalSetting = await Referral.findOne({ isGlobalSetting: true });
     const rewardAmount = globalSetting ? globalSetting.rewardAmount : 100;
 
-    // Referral entry banate hi referralCode auto-generate ho jayega
+    // ✅ Create referral entry
     const referral = await Referral.create({
       referredBy,
       referredTo,
       rewardAmount,
-      status: "rewarded"
+      status: "partial_rewarded"
     });
-    
 
-    // Find or create wallet for User A
+    // ✅ Find/create wallet for User A
     let wallet = await Wallet.findOne({ owner: referredBy, ownerModel: "User" });
     if (!wallet) {
       wallet = await Wallet.create({
@@ -85,23 +64,68 @@ export const createReferral = async (req, res) => {
       });
     }
 
-    // Wallet transaction
+    // ✅ Credit 20% now (on User B login)
+    const firstReward = rewardAmount * 0.2;
     const transaction = {
       type: "credit",
-      amount: rewardAmount,
+      amount: firstReward,
       method: "referral",
       relatedUser: referredTo,
-      description: `Referral reward for referring user`,
+      description: `20% referral reward credited (on User B login)`
     };
 
     wallet.transactions.push(transaction);
-    wallet.balance += rewardAmount;
+    wallet.balance += firstReward;
     await wallet.save();
 
     referral.walletTransactionId = wallet.transactions[wallet.transactions.length - 1]._id;
     await referral.save();
 
     res.status(201).json({ success: true, referral, wallet });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error: " + err.message });
+  }
+};
+
+// 🔹 Complete Referral Reward (triggered on User B first booking complete)
+export const completeReferralReward = async (req, res) => {
+  try {
+    const { bookingId, userBId } = req.body; // booking complete hone ke baad trigger
+
+    if (!userBId) {
+      return res.status(400).json({ success: false, message: "UserBId required" });
+    }
+
+    const referral = await Referral.findOne({ referredTo: userBId, status: "partial_rewarded" });
+    if (!referral) {
+      return res.status(404).json({ success: false, message: "No referral found or already completed" });
+    }
+
+    const userA = referral.referredBy;
+    const remainingReward = referral.rewardAmount * 0.8;
+
+    let wallet = await Wallet.findOne({ owner: userA, ownerModel: "User" });
+    if (!wallet) {
+      wallet = await Wallet.create({ owner: userA, ownerModel: "User", balance: 0, transactions: [] });
+    }
+
+    const transaction = {
+      type: "credit",
+      amount: remainingReward,
+      method: "referral",
+      relatedUser: userBId,
+      bookingId,
+      description: `80% referral reward credited (after User B first booking)`
+    };
+
+    wallet.transactions.push(transaction);
+    wallet.balance += remainingReward;
+    await wallet.save();
+
+    referral.status = "fully_rewarded";
+    await referral.save();
+
+    res.json({ success: true, message: "Referral reward completed", referral, wallet });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error: " + err.message });
   }
