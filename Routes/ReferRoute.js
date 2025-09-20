@@ -1,32 +1,37 @@
 import express from "express";
-import { createReferral, updateReferralReward, getReferralHistory, getAllReferrals  } from "../controllers/referralController.js";
-import { authenticateAndAuthorize } from "../middlewares/authRoleMiddleware.js";
+import {
+  createReferral,
+  updateReferralReward,
+  getReferralHistory,
+  getAllReferrals
+} from "../Controllers/ReferController.js";
+import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
-// 🔹 Normal users can create referral
+// 🔹 Normal users -> create referral
 router.post(
-  "/referrals",
-  authenticateAndAuthorize(["User"], { unauthorizedMsg: "Login required!" }),
+  "/",
+  authenticateAndAuthorize(["customer"], { unauthorizedMsg: "Login required!" }),
   createReferral
 );
 
 router.get(
-  "/referrals/history",
-  authenticateAndAuthorize(["User"], { unauthorizedMsg: "Login required!" }),
+  "/history",
+  authenticateAndAuthorize(["customer"], { unauthorizedMsg: "Login required!" }),
   getReferralHistory
 );
 
-// 🔹 Super Admin can update referral reward amount
+// 🔹 Super Admin -> update reward
 router.put(
-  "/referrals/reward",
-  authenticateAndAuthorize(["superAdmin"], { forbiddenMsg: "Only Super Admin can update reward!" }),
+  "/reward",
+  authenticateAndAuthorize(["super_admin"], { forbiddenMsg: "Only Super Admin can update reward!" }),
   updateReferralReward
 );
 
 router.get(
-  "/referrals",
-  authenticateAndAuthorize(["superAdmin"], { forbiddenMsg: "Only Super Admin can view all referrals!" }),
+  "/",
+  authenticateAndAuthorize(["super_admin"], { forbiddenMsg: "Only Super Admin can view all referrals!" }),
   getAllReferrals
 );
 
