@@ -72,6 +72,7 @@ export const createReferral = async (req, res) => {
       rewardAmount,
       status: "rewarded"
     });
+    
 
     // Find or create wallet for User A
     let wallet = await Wallet.findOne({ owner: referredBy, ownerModel: "User" });
