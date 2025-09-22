@@ -1,6 +1,6 @@
 import Booking from "../Models/BookingModel.js";
-import Coupon from "../Models/CouponModel.js"; 
-import WalletTransaction from "../Models/WalletTransaction.js";
+import Coupon from "../Models/CouponModel.js";
+import WalletTransaction from "../Models/WalletModel.js";
 import Salon from "../Models/SalonModel.js";
 import Freelancer from "../Models/FreelancerModel.js";
 import mongoose from "mongoose";
@@ -20,11 +20,12 @@ export const createBooking = async (req, res) => {
       freelancerId,
       services,
       comboId,
-      schedule,
+      scheduleId,
       couponCode,
       transportCharges,
       staffId,
       event,
+      paymentType
     } = req.body;
 
     // Base price निकालना (services + combo)
@@ -59,12 +60,14 @@ export const createBooking = async (req, res) => {
       staffId,
       services,
       comboId,
-      schedule,
+      scheduleId: scheduleId, // ✅ map correctly
       baseAmount,
       discountAmount,
       transportCharges,
       totalAmount,
       event,
+      paymentType,          // ✅ include it
+
       status: "pending",
     });
 
@@ -119,24 +122,56 @@ export const confirmBookingPayment = async (req, res) => {
   }
 };
 
+// export const completeBooking = async (req, res) => {
+//   try {
+//     const { bookingId } = req.params;
+
+//     const booking = await Booking.findById(bookingId);
+//     if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+//     booking.status = "completed";
+//     await booking.save();
+
+//     // ⬇️ Referral reward trigger (80% release)
+//     await completeReferralReward({ userBId: booking.userId, bookingId: booking._id });
+
+//     res.json({ message: "Booking completed successfully", booking });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error completing booking", error: error.message });
+//   }
+// };
+
 export const completeBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
+    // Find booking
     const booking = await Booking.findById(bookingId);
-    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    // Prevent completing cancelled/rejected bookings
+    if (["cancelled", "rejected"].includes(booking.status)) {
+      return res.status(400).json({ success: false, message: `Cannot complete a ${booking.status} booking` });
+    }
 
     booking.status = "completed";
     await booking.save();
 
-    // ⬇️ Referral reward trigger (80% release)
-    await completeReferralReward({ userBId: booking.userId, bookingId: booking._id });
+    // Trigger referral reward
+    try {
+      await completeReferralReward({ userBId: booking.userId, bookingId: booking._id });
+    } catch (refErr) {
+      console.error("Referral Reward Error:", refErr.message);
+    }
 
-    res.json({ message: "Booking completed successfully", booking });
+    res.json({ success: true, message: "Booking completed successfully", booking });
   } catch (error) {
-    res.status(500).json({ message: "Error completing booking", error: error.message });
+    res.status(500).json({ success: false, message: "Error completing booking", error: error.message });
   }
 };
+
 
 export const cancelBooking = async (req, res) => {
   try {

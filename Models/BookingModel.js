@@ -8,12 +8,10 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
 
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
-    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // freelancer is Admin type
-
-    staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+    freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
 
     services: [
       {
@@ -24,19 +22,8 @@ const bookingSchema = new mongoose.Schema(
     ],
 
     comboId: { type: mongoose.Schema.Types.ObjectId, ref: "ServiceCombo" },
-    
 
-    schedule: {
-      date: { type: Date, required: true },
-      slot: { type: String, required: true }, // "10:00 AM"
-      duration: { type: Number, default: 60 }, // minutes
-      chair: { type: Number },
-      location: {
-        type: { type: String, enum: ["Point"], default: "Point" },
-        coordinates: { type: [Number] }, // [lng, lat]
-        address: { type: String },
-      },
-    },
+    scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: "Schedule", required: true },
 
     // Financials
     baseAmount: { type: Number, required: true },
@@ -46,7 +33,7 @@ const bookingSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
 
     // Payment
-    paymentType: { type: String, enum: ["wallet", "UPI", "cash"], required: true },
+    paymentType: { type: String, enum: ["wallet", "cash"], required: true },
     paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
     transactionId: { type: String },
     walletTransaction: { type: mongoose.Schema.Types.ObjectId, ref: "WalletTransaction" },
