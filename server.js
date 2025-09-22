@@ -19,11 +19,11 @@ import adminRoutes from "./Routes/AdminRoutes.js";
 import categoryRoutes from "./Routes/CategoryRoute.js";
 import serviceRoutes from "./Routes/ServiceRoute.js";
 import couponRoutes from "./Routes/CouponRoutes.js";
-import serviceComboRoutes from "./Routes/ServiceComboRoutes.js";
+import serviceComboRoutes from "./Routes/ServiceComboR  outes.js";
 import contactRoutes from "./Routes/ContactRoutes.js";
 import referralRoutes from "./Routes/ReferRoute.js";
 import payRoutes from "./Routes/PaymentRoutes.js";
-import bookingRoutes from "./Routes/BookingRoutes.js";
+import commissionRoutes from "./Routes/CommissionRoute.js";
 
 
 dotenv.config();
@@ -54,7 +54,7 @@ app.use("/api/service-combos", serviceComboRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/pay", payRoutes);
-app.use("/api/booking", bookingRoutes);
+app.use("/api/commission", commissionRoutes);
 
 
 const PORT = process.env.PORT || 5000;

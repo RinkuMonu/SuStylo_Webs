@@ -78,13 +78,13 @@ const salonSchema = new mongoose.Schema(
 
     referrals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Referral" }],
 
-    commission: {
-      isCommissionApplicable: { type: Boolean, default: true },
-      percentage: { type: Number, default: 10 },
-      commissionsHistory: [
-        { type: mongoose.Schema.Types.ObjectId, ref: "Commission" },
-      ],
-    },
+   commission: {
+  isCommissionApplicable: { type: Boolean, default: true },
+  percentage: { type: Number, default: 10 },
+  flat: { type: Number, default: 0 },
+  commissionsHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Commission" }]
+}
+
   },
   { timestamps: true }
 );
