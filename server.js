@@ -19,7 +19,7 @@ import adminRoutes from "./Routes/AdminRoutes.js";
 import categoryRoutes from "./Routes/CategoryRoute.js";
 import serviceRoutes from "./Routes/ServiceRoute.js";
 import couponRoutes from "./Routes/CouponRoutes.js";
-import serviceComboRoutes from "./Routes/ServiceComboR  outes.js";
+import serviceComboRoutes from "./Routes/ServiceComboRoutes.js";
 import contactRoutes from "./Routes/ContactRoutes.js";
 import referralRoutes from "./Routes/ReferRoute.js";
 import payRoutes from "./Routes/PaymentRoutes.js";
