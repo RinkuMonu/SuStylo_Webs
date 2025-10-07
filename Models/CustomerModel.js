@@ -85,6 +85,9 @@ const CustomerSchema = new mongoose.Schema(
     // Soft delete
     isDeleted: { type: Boolean, default: false },
 
+    otpVerifiedForReset: { type: Boolean, default: false },
+
+
     // Audit trail
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null },

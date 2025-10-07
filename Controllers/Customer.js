@@ -76,7 +76,7 @@ dotenv.config();
 
 export const registerCustomer = async (req, res) => {
   try {
-    const { name, email, phone, password, gender, age } = req.body;
+    const { name, email, phone, password, gender } = req.body;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -98,7 +98,7 @@ export const registerCustomer = async (req, res) => {
         customer.phone = phone;
         customer.passwordHash = hashedPassword;
         customer.gender = gender;
-        customer.age = age;
+        // customer.age = age;
         if (avatarUrl) customer.avatarUrl = avatarUrl;
         customer.status = "active";
         customer.isActive = true;
@@ -134,7 +134,6 @@ export const registerCustomer = async (req, res) => {
       phone,
       passwordHash: hashedPassword,
       gender,
-      age,
       avatarUrl,
       status: "active",
       isActive: true,
@@ -283,6 +282,25 @@ export const sendOtp = async (req, res) => {
   }
 };
 
+// export const verifyOtp = async (req, res) => {
+//   try {
+//     const { phone, otp } = req.body;
+//     const customer = await Customer.findOne({ phone });
+
+//     if (!customer || !customer.otp) {
+//       return res.status(400).json({ success: false, message: "OTP not found!" });
+//     }
+
+//     if (customer.otp.code !== otp || customer.otp.expiresAt < new Date()) {
+//       return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
+//     }
+
+//     res.json({ success: true, message: "OTP verified" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 export const verifyOtp = async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -296,27 +314,54 @@ export const verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
     }
 
-    res.json({ success: true, message: "OTP verified" });
+    // ✅ Mark OTP verified for reset
+    customer.otpVerifiedForReset = true;
+    await customer.save();
+
+    res.json({ success: true, message: "OTP verified successfully. You can now reset your password." });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+
+// export const resetPassword = async (req, res) => {
+//   try {
+//     const { phone, otp, newPassword } = req.body;
+//     const customer = await Customer.findOne({ phone });
+
+//     if (!customer || !customer.otp) {
+//       return res.status(400).json({ success: false, message: "Invalid request!" });
+//     }
+
+//     if (customer.otp.code !== otp || customer.otp.expiresAt < new Date()) {
+//       return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
+//     }
+
+//     customer.passwordHash = await bcrypt.hash(newPassword, 10);
+//     customer.otp = null;
+//     await customer.save();
+
+//     res.json({ success: true, message: "Password reset successfully" });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
 export const resetPassword = async (req, res) => {
   try {
-    const { phone, otp, newPassword } = req.body;
-    const customer = await Customer.findOne({ phone });
+    const { newPassword } = req.body;
 
-    if (!customer || !customer.otp) {
-      return res.status(400).json({ success: false, message: "Invalid request!" });
-    }
-
-    if (customer.otp.code !== otp || customer.otp.expiresAt < new Date()) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
+    // Find the user whose OTP was verified
+    const customer = await Customer.findOne({ otpVerifiedForReset: true });
+    if (!customer) {
+      return res.status(400).json({ success: false, message: "No OTP verified user found!" });
     }
 
     customer.passwordHash = await bcrypt.hash(newPassword, 10);
     customer.otp = null;
+    customer.otpVerifiedForReset = false; // clear flag
     await customer.save();
 
     res.json({ success: true, message: "Password reset successfully" });
