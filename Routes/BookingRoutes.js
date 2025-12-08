@@ -6,7 +6,7 @@ import {
   completeBooking,
   cancelBooking,
 } from "../Controllers/BookingController.js";
-import { authenticateAndAuthorize } from "../Middleware/auth.js";
+import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
@@ -14,13 +14,13 @@ const router = express.Router();
 router.post("/", authenticateAndAuthorize(["customer"]), createBooking);
 
 // Salon/Freelancer approve/reject booking
-router.put("/:bookingId/status", authenticateAndAuthorize(["salon", "freelancer", "admin"]), updateBookingStatusByProvider);
+router.put("/:bookingId/status", authenticateAndAuthorize(["freelancer", "admin"]), updateBookingStatusByProvider);
 
 // Customer confirms with payment
 router.put("/:bookingId/confirm", authenticateAndAuthorize(["customer"]), confirmBookingPayment);
 
 // Mark booking complete
-router.put("/:bookingId/complete", authenticateAndAuthorize(["salon", "freelancer"]), completeBooking);
+router.put("/:bookingId/complete", authenticateAndAuthorize(["admin", "freelancer"]), completeBooking);
 
 // Cancel booking
 router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer", "admin"]), cancelBooking);
