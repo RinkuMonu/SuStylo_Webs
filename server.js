@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
 import connectDB from "./config/db.js";
 
 import bannerRoutes from "./Routes/BannerRoute.js";
@@ -24,17 +25,18 @@ import contactRoutes from "./Routes/ContactRoutes.js";
 import referralRoutes from "./Routes/ReferRoute.js";
 import payRoutes from "./Routes/PaymentRoutes.js";
 import commissionRoutes from "./Routes/CommissionRoute.js";
-
 import searchRoutes from "./Routes/searchRoutes.js";
+import blogsRoutes from "./Routes/blogRoutes.js";
 
 
 dotenv.config();
 const app = express();
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+connectDB();
 
 app.use(cors());
 app.use(express.json());
-
-connectDB();
+app.use(express.urlencoded({extended:true}));
 
 app.use("/api/banners", bannerRoutes);
 app.use("/api/notifications", notificationRoutes);
@@ -46,7 +48,6 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/appointment", appointmentRoutes);
-
 app.use("/api/leads", leadRoutes);
 app.use("/api/admins", adminRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -57,8 +58,8 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/pay", payRoutes);
 app.use("/api/commission", commissionRoutes);
-
 app.use("/api/search", searchRoutes);
+app.use("/api/blogs", blogsRoutes);
 
 
 app.get("/", (req, res) => {
