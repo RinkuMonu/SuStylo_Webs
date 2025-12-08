@@ -37,7 +37,7 @@ export const createBooking = async (req, res) => {
       staffId,
       services,
       comboId,
-      schedule,
+      scheduleId: scheduleId, // ✅ map correctly
       baseAmount,
       totalAmount,
       paymentType,
