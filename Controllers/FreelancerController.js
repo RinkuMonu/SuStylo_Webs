@@ -144,7 +144,7 @@ export const getAllFreelancers = async (req, res) => {
 
     // 🔹 Name partial search (on freelancer fullName)
     if (name) {
-      filter.fullName = { $regex: name, $options: "i" };
+      filter.slug = { $regex: name, $options: "i" };
     }
 
     // 🔹 Area filter (like salons: city/state bhi cover kare)
