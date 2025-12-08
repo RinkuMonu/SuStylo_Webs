@@ -25,6 +25,8 @@ import referralRoutes from "./Routes/ReferRoute.js";
 import payRoutes from "./Routes/PaymentRoutes.js";
 import commissionRoutes from "./Routes/CommissionRoute.js";
 
+import searchRoutes from "./Routes/searchRoutes.js";
+
 
 dotenv.config();
 const app = express();
@@ -55,6 +57,16 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/pay", payRoutes);
 app.use("/api/commission", commissionRoutes);
+
+app.use("/api/search", searchRoutes);
+
+
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "API is running...",
+  });
+});
 
 
 const PORT = process.env.PORT || 5000;

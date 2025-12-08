@@ -7,7 +7,7 @@ import Customer from "../Models/CustomerModel.js";
 import { generateStrongPassword } from "../utils/password.js";
 import { sendCredentialsEmail } from "../utils/email.js";
 import bcrypt from "bcryptjs";
-
+import slugify from "slugify";
 async function resolveUserContact(userId) {
   if (!userId) return null;
   // try Admin
@@ -201,6 +201,8 @@ export const approveLead = async (req, res) => {
         owner: existingAdmin._id,
         leadRef: lead._id,
         salonName: lead.salonName || lead.ownerName,
+        slug : slugify(lead.salonName, { lower: true, strict: true }),
+
         description: lead.description || "",
         contact: {
           phone: existingAdmin.phone || contact.phone || "",
@@ -225,6 +227,7 @@ export const approveLead = async (req, res) => {
         user: existingAdmin._id,
         leadRef: lead._id,
         fullName: lead.ownerName,
+        slug : slugify(lead.ownerName, { lower: true, strict: true }),
         phone: existingAdmin.phone || contact.phone || "",
         email: existingAdmin.email || contact.email,
         location: (lead.address && lead.address.coordinates) ? lead.address.coordinates : undefined,

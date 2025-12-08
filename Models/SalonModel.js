@@ -18,6 +18,12 @@ const salonSchema = new mongoose.Schema(
     },
 
     salonName: { type: String, required: true, trim: true },
+      slug: {
+    type: String,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
     description: { type: String, trim: true },
 
     contact: {
@@ -42,7 +48,12 @@ const salonSchema = new mongoose.Schema(
 
     photos: [{ type: String }],
     agreementDocs: [{ type: String }],
-    facilities: [{ type: String }],
+    // facilities: [{ type: String }],
+    facilities: {
+      type: [String],
+      default: []
+    },
+
 
     // Staff & Services
     staff: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
@@ -78,16 +89,38 @@ const salonSchema = new mongoose.Schema(
 
     referrals: [{ type: mongoose.Schema.Types.ObjectId, ref: "Referral" }],
 
-   commission: {
-  isCommissionApplicable: { type: Boolean, default: true },
-  percentage: { type: Number, default: 10 },
-  flat: { type: Number, default: 0 },
-  commissionsHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Commission" }]
-}
+    commission: {
+      isCommissionApplicable: { type: Boolean, default: true },
+      percentage: { type: Number, default: 10 },
+      flat: { type: Number, default: 0 },
+      commissionsHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Commission" }]
+    }
 
   },
   { timestamps: true }
 );
 
+
+salonSchema.pre("save", function (next) {
+  if (this.isModified("salonName")) {
+    this.slug = this.salonName
+      .toLowerCase()
+      .replace(/'/g, "")
+      .replace(/\s+/g, "-");
+  }
+  next();
+});
+
 const Salon = mongoose.model("Salon", salonSchema);
 export default Salon;
+
+
+salonSchema.pre("save", function (next) {
+  if (this.isModified("salonName")) {
+    this.slug = this.salonName
+      .toLowerCase()
+      .replace(/'/g, "")
+      .replace(/\s+/g, "-");
+  }
+  next();
+});

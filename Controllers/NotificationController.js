@@ -1,7 +1,7 @@
 import Admin from "../Models/AdminModal.js";
 import Freelancer from "../Models/FreelancerModel.js"; 
 import Notification from "../Models/NotificationsModel.js";
-import admin from "../config/firebase.js";
+// import admin from "../config/firebase.js";
 
 export const sendNotificationToRole = async (req, res) => {
   try {

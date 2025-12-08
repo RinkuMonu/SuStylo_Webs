@@ -2,6 +2,9 @@ import Salon from "../Models/SalonModel.js";
 import Service from "../Models/ServicesModel.js";
 import Staff from "../Models/StaffModel.js";
 import Schedule from "../Models/ScheduleModel.js";
+import Review from "../Models/ReviewModel.js";
+
+import slugify from "slugify";
 
 
 export const createSalon = async (req, res) => {
@@ -35,9 +38,14 @@ export const getAllSalons = async (req, res) => {
     let filter = {};
 
     // 🔹 Salon name partial search
+    // if (name) {
+    //   filter.salonName = { $regex: name, $options: "i" };
+    // }
+
     if (name) {
-      filter.salonName = { $regex: name, $options: "i" };
-    }
+  filter.slug = name.toLowerCase().trim();
+}
+
 
     // 🔹 Area filter (area, city, state sab cover kare)
     if (area) {
@@ -95,11 +103,26 @@ export const getAllSalons = async (req, res) => {
           }
 
           // Service filter
+          // if (service && match) {
+          //   match = services.some(s =>
+          //     s._id.toString() === service ||
+          //     s.name?.toLowerCase().includes(service.toLowerCase())
+          //   );
+          // }
+
+          // 🔥 Service filter with slug support
           if (service && match) {
-            match = services.some(s =>
-              s._id.toString() === service ||
-              s.name?.toLowerCase().includes(service.toLowerCase())
-            );
+            const serviceSlug = slugify(service, { lower: true, strict: true });
+
+            match = services.some((s) => {
+              const dbSlug = slugify(s.name, { lower: true, strict: true });
+
+              return (
+                s._id.toString() === service ||      // ID match
+                dbSlug === serviceSlug ||            // Slug match
+                s.name.toLowerCase().includes(service.toLowerCase()) // Name match
+              );
+            });
           }
 
           // Price filter
@@ -139,23 +162,56 @@ export const getAllSalons = async (req, res) => {
   }
 };
 
+// export const getSalonById = async (req, res) => {
+//   try {
+//     const salon = await Salon.findById(req.params.id).populate("referrals");
+//     if (!salon) {
+//       return res.status(404).json({ success: false, message: "Salon not found" });
+//     }
+
+//     // services + staff alag fetch karo
+//     const services = await Service.find({ salonId: salon._id });
+//     const staff = await Staff.find({ salonId: salon._id });
+
+//     res.json({ success: true, salon: { ...salon.toObject(), services, staff } });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
 
 export const getSalonById = async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id).populate("referrals");
+
     if (!salon) {
       return res.status(404).json({ success: false, message: "Salon not found" });
     }
 
-    // services + staff alag fetch karo
-    const services = await Service.find({ salonId: salon._id });
-    const staff = await Staff.find({ salonId: salon._id });
+    // Fetch related data
+    const [services, staff, reviews] = await Promise.all([
+      Service.find({ salonId: salon._id }),
+      Staff.find({ salonId: salon._id }),
+      Review.find({ reviewFor: "Salon", targetId: salon._id })
+        .populate("user", "name email")  // optional
+        .populate("approvedBy", "name") // optional
+    ]);
 
-    res.json({ success: true, salon: { ...salon.toObject(), services, staff } });
+    res.json({
+      success: true,
+      salon: {
+        ...salon.toObject(),
+        services,
+        staff,
+        reviews, // 👈 ADDING REVIEWS HERE
+      },
+    });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 export const updateSalon = async (req, res) => {
   try {
@@ -198,7 +254,6 @@ export const updateSalon = async (req, res) => {
   }
 
 };
-
 
 export const deleteSalon = async (req, res) => {
   try {
