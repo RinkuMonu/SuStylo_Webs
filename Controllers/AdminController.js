@@ -107,7 +107,6 @@ export const loginAdmin = async (req, res) => {
       .json({ success: false, message: "Server error: " + err.message });
   }
 };
-
 // 3️⃣ Send OTP for password reset
 export const sendAdminOtp = async (req, res) => {
   try {
