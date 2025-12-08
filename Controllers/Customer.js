@@ -176,17 +176,24 @@ export const loginCustomer = async (req, res) => {
     customer.lastLoginAt = new Date();
 
     // Update coordinates if provided
-    if (latitude && longitude) {
+    // Update coordinates if provided
+    if (latitude !== undefined && longitude !== undefined) {
+      // Address ke andar coordinates (GeoJSON)
       customer.address = customer.address || {};
-      customer.address.coordinates = { lat: latitude, lng: longitude };
+      customer.address.coordinates = {
+        type: "Point",
+        coordinates: [longitude, latitude], // [lng, lat]
+      };
 
+      // Login location history
       customer.loginLocations = customer.loginLocations || [];
       customer.loginLocations.push({
-        lat: latitude,
-        lng: longitude,
+        type: "Point",
+        coordinates: [longitude, latitude], // [lng, lat]
         loggedAt: new Date(),
       });
     }
+
 
     await customer.save();
 

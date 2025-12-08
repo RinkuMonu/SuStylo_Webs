@@ -1,37 +1,41 @@
+
 // import mongoose from "mongoose";
+
 
 // const serviceSchema = new mongoose.Schema(
 //   {
 //     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
-//     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // अगर freelancer है
+//     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
 
 //     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
-
 //     name: { type: String, required: true, trim: true },
 //     description: { type: String, trim: true },
-
 //     price: { type: Number, required: true },
 //     discountPrice: { type: Number },
-//     duration: { type: Number, required: true }, // in minutes
+//     duration: { type: Number, required: true },
 //     gender: { type: String, enum: ["male", "female", "unisex"], default: "unisex" },
+//     image: { type: String },
 
-//     image: { type: String },  // 🔹 Cloudinary image URL save करने के लिए field
-
+//     staff: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
 
 //     isActive: { type: Boolean, default: true },
 //     popular: { type: Boolean, default: false },
 
-//     staff: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }], // कौन staff ये service देता है
+//     // 🔹 New field
+//     atHome: { type: Boolean, default: false }, // Freelancer by default true
 //   },
 //   { timestamps: true }
 // );
+
 
 // const Service = mongoose.model("Service", serviceSchema);
 // export default Service;
 
 
-import mongoose from "mongoose";
 
+
+import mongoose from "mongoose";
+import slugify from "slugify";
 
 const serviceSchema = new mongoose.Schema(
   {
@@ -40,6 +44,7 @@ const serviceSchema = new mongoose.Schema(
 
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     name: { type: String, required: true, trim: true },
+    slug: { type: String, index: true }, // 🔥 Added slug field
     description: { type: String, trim: true },
     price: { type: Number, required: true },
     discountPrice: { type: Number },
@@ -53,10 +58,23 @@ const serviceSchema = new mongoose.Schema(
     popular: { type: Boolean, default: false },
 
     // 🔹 New field
-    atHome: { type: Boolean, default: false }, // Freelancer by default true
+    atHome: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+
+// 🔥 Auto-generate slug from name
+serviceSchema.pre("save", function (next) {
+  if (this.isModified("name")) {
+    this.slug = slugify(this.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+  }
+  next();
+});
 
 
 const Service = mongoose.model("Service", serviceSchema);

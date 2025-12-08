@@ -15,6 +15,12 @@ const freelancerSchema = new mongoose.Schema(
     },
 
     fullName: { type: String, required: true, trim: true },
+    slug: {
+      type: String,
+      unique: true,
+      index: true
+    },
+
     phone: { type: String, required: true, trim: true },
     email: { type: String, trim: true },
 
@@ -34,6 +40,9 @@ const freelancerSchema = new mongoose.Schema(
       pinCode: { type: String, trim: true },
       country: { type: String, trim: true, default: "India" },
     },
+
+    experience: { type: Number, default: 0 }, // years of experience
+
 
     // Services & Staff
     services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
