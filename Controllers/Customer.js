@@ -376,3 +376,22 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const getAllCustomers = async (req, res) => {
+  try{
+    const customers =  await Customer.find({isDeleted: false}).select("-passwordHash");
+    res.json({success: true, customers}); 
+  }catch(err){
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+export const getByIdCustomer = async (req, res) => {
+  try{
+    const {id} = req.params; 
+    const customer =  await Customer.findById(id).select("-passwordHash");
+    res.json({success: true, customer}); 
+  }catch(err){
+    res.status(500).json({ success: false, message: err.message });
+  }   
+}
+
