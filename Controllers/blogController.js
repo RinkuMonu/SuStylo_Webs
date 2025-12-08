@@ -255,6 +255,7 @@ export const updateBlog = async (req, res) => {
   }
 };
 
+
 export const deleteBlog = async (req, res) => {
   try {
     const blog = await Blog.findByIdAndDelete(req.params.id);
