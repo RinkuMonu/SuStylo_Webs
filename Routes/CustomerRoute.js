@@ -8,6 +8,8 @@ import {
   sendOtp,
   verifyOtp,
   resetPassword,
+  getAllCustomers,
+  getByIdCustomer
 } from "../Controllers/Customer.js";
 import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
@@ -22,6 +24,10 @@ router.post("/login", loginCustomer);
 
 // Profile
 router.get("/profile", authenticateAndAuthorize(["customer"]), getProfile);
+router.get("/get-all",  getAllCustomers);
+router.get("/:id", getByIdCustomer);
+
+// authenticateAndAuthorize(["super_admin"]),
 
 // Update Profile
 router.put("/profile", authenticateAndAuthorize(["customer"]), uploadToCloudinary("users").single("avatar"), updateProfile);
