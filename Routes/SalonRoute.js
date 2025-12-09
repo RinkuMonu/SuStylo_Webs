@@ -6,6 +6,7 @@ import {
   updateSalon,
   deleteSalon,
   toggleSalonStatus,
+  getTopRatedSalons,
 } from "../Controllers/SalonController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 import { ADMIN_ROLES } from "../Models/AdminModal.js"; // Assuming includes SuperAdmin, Admin
@@ -16,6 +17,9 @@ import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
 const router = express.Router();
 
 // Admin/SuperAdmin can do all, Salon can do some, Freelancer none for Salon routes
+
+router.get("/top-rated", getTopRatedSalons);
+
 
 router.post(
   "/",
@@ -58,5 +62,7 @@ router.post(
   authenticateAndAuthorize(["super_admin", "admin", "Salon"], { forbiddenMsg: "Not allowed" }),
   toggleSalonStatus
 );
+
+
 
 export default router;

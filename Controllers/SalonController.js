@@ -43,8 +43,8 @@ export const getAllSalons = async (req, res) => {
     // }
 
     if (name) {
-  filter.slug = name.toLowerCase().trim();
-}
+      filter.slug = name.toLowerCase().trim();
+    }
 
 
     // 🔹 Area filter (area, city, state sab cover kare)
@@ -294,3 +294,25 @@ export const toggleSalonStatus = async (req, res) => {
   }
 };
 
+
+// 📌 Get Top Rated Salons
+export const getTopRatedSalons = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query; // default: 10 salons
+
+    const salons = await Salon.find({ "rating.count": { $gt: 0 } })
+      .sort({ "rating.average": -1 }) // highest rating first
+      .limit(parseInt(limit))
+      .populate("referrals");
+
+    res.json({
+      success: true,
+      total: salons.length,
+      salons,
+    });
+
+  } catch (err) {
+    console.error("TopRatedSalon Error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
