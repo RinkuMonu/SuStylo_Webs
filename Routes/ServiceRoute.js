@@ -5,6 +5,7 @@ import {
   getServiceById,
   updateService,
   deleteService,
+  getServicesByCategory,
 } from "../Controllers/ServiceController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
@@ -43,5 +44,12 @@ router.delete(
   authenticateAndAuthorize(["super_admin", "admin", "Freelancer"], { forbiddenMsg: "Not allowed" }),
   deleteService
 );
+
+// Get services by category
+router.get(
+  "/category/:categoryId",
+  getServicesByCategory
+);
+
 
 export default router;
