@@ -59,11 +59,16 @@ export const uploadToLocal = () => {
       cb(null, dest);
     },
     filename: (req, file, cb) => {
-      // safe unique filename
-      const ext = path.extname(file.originalname) || "";
-      const safe = file.originalname.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_.]/g, "");
-      cb(null, `${Date.now()}-${safe}${ext}`);
-    }
+  const ext = path.extname(file.originalname);
+
+  const baseName = path
+    .basename(file.originalname, ext)
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9-_]/g, "")
+    .toLowerCase();
+
+  cb(null, `${Date.now()}-${baseName}${ext}`);
+}
   });
 
   return multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
