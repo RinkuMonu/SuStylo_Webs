@@ -54,3 +54,4 @@ export const deleteCategory = async (req, res) => {
   if (!category) return res.status(404).json({ success: false, message: "Category not found" });
   res.json({ success: true, message: "Category deleted" });
 };
+

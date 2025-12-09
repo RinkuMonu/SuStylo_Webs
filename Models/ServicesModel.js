@@ -1,38 +1,4 @@
 
-// import mongoose from "mongoose";
-
-
-// const serviceSchema = new mongoose.Schema(
-//   {
-//     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
-//     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
-
-//     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
-//     name: { type: String, required: true, trim: true },
-//     description: { type: String, trim: true },
-//     price: { type: Number, required: true },
-//     discountPrice: { type: Number },
-//     duration: { type: Number, required: true },
-//     gender: { type: String, enum: ["male", "female", "unisex"], default: "unisex" },
-//     image: { type: String },
-
-//     staff: [{ type: mongoose.Schema.Types.ObjectId, ref: "Staff" }],
-
-//     isActive: { type: Boolean, default: true },
-//     popular: { type: Boolean, default: false },
-
-//     // 🔹 New field
-//     atHome: { type: Boolean, default: false }, // Freelancer by default true
-//   },
-//   { timestamps: true }
-// );
-
-
-// const Service = mongoose.model("Service", serviceSchema);
-// export default Service;
-
-
-
 
 import mongoose from "mongoose";
 import slugify from "slugify";
