@@ -15,21 +15,21 @@ const router = express.Router();
 // Admin-only routes
 router.post(
   "/",
-  authenticateAndAuthorize(["super_admin"], { unauthorizedMsg: "Login required", forbiddenMsg: "Only super_admin can create coupons" }),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"], { unauthorizedMsg: "Login required", forbiddenMsg: "Only Authorized role can manage coupon" }),
   uploadToCloudinary("coupons").single("image"),
   createCoupon
 );
 
 router.put(
   "/:id",
-  authenticateAndAuthorize(["super_admin"], { forbiddenMsg: "Only super_admin can update coupons" }),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"], { forbiddenMsg: "Only Authorized role can manage coupon" }),
   uploadToCloudinary("coupons").single("image"),
   updateCoupon
 );
 
 router.delete(
   "/:id",
-  authenticateAndAuthorize(["super_admin"], { forbiddenMsg: "Only super_admin can delete coupons" }),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"], { forbiddenMsg: "Only Authorized role can manage coupon" }),
   deleteCoupon
 );
 

@@ -3,6 +3,7 @@ import Salon from "../Models/SalonModel.js";
 import Freelancer from "../Models/FreelancerModel.js";
 import Wallet from "../Models/WalletModel.js";
 import Commission from "../Models/CommissionModel.js";
+import Cart from "../Models/CartModel.js";
 import mongoose from "mongoose";
 import { completeReferralReward } from "./ReferController.js";
 
@@ -17,18 +18,27 @@ const getApplicableCommission = async (type, targetId, defaultPercentage) => {
 export const createBooking = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { bookingType, salonId, freelancerId, services, comboId, schedule, paymentType, transportCharges, staffId, event, isAtHome } = req.body;
+    const {
+      bookingType,
+      salonId,
+      freelancerId,
+      services,
+      comboId,
+      scheduleId,
+      paymentType,
+      transportCharges,
+      staffId,
+      event,
+      isAtHome,
+    } = req.body;
 
-    let baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
-    if (comboId) {
-      const combo = await mongoose.model("ServiceCombo").findById(comboId);
-      if (combo) baseAmount += combo.basePrice;
-    }
+    // Calculate base amount
+    const baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0) + (comboId ? comboId.price : 0);
+
+    // You can add discount, tax, commission calculations here if needed
     const totalAmount = baseAmount + (transportCharges || 0);
 
-    // Set initial status
-    const status = isAtHome ? "pendingApproval" : "confirmed";
-
+    // Create booking
     const booking = await Booking.create({
       bookingType,
       userId,
@@ -37,19 +47,66 @@ export const createBooking = async (req, res) => {
       staffId,
       services,
       comboId,
-      scheduleId: scheduleId, // ✅ map correctly
+      scheduleId,
       baseAmount,
+      transportCharges: transportCharges || 0,
       totalAmount,
       paymentType,
-      status,
-      event
+      event,
+      isAtHome,
     });
 
-    res.status(201).json({ success: true, booking });
+    // Clear user's cart after successful booking
+    await Cart.findOneAndDelete({ userId });
+
+    res.status(201).json({
+      success: true,
+      message: "Booking created successfully and cart cleared",
+      booking,
+    });
+
   } catch (err) {
+    console.error("Booking creation error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// export const createBooking = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const { bookingType, salonId, freelancerId, services, comboId, schedule, paymentType, transportCharges, staffId, event, isAtHome } = req.body;
+
+//     let baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
+//     if (comboId) {
+//       const combo = await mongoose.model("ServiceCombo").findById(comboId);
+//       if (combo) baseAmount += combo.basePrice;
+//     }
+//     const totalAmount = baseAmount + (transportCharges || 0);
+
+//     // Set initial status
+//     const status = isAtHome ? "pendingApproval" : "confirmed";
+
+//     const booking = await Booking.create({
+//       bookingType,
+//       userId,
+//       salonId,
+//       freelancerId,
+//       staffId,
+//       services,
+//       comboId,
+//       scheduleId: scheduleId, // ✅ map correctly
+//       baseAmount,
+//       totalAmount,
+//       paymentType,
+//       status,
+//       event
+//     });
+
+//     res.status(201).json({ success: true, booking });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
 
 // Approve Booking (for at-home)
 export const approveBooking = async (req, res) => {

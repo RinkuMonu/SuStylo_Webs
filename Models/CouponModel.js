@@ -63,15 +63,15 @@ const couponSchema = new mongoose.Schema(
       default: 0,
     },
 
-    status: {
-      type: String,
-      enum: ["active", "inactive", "expired"],
-      default: "active",
-    },
-
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
+      refPath: "createdByModel",
+    },
+
+    createdByModel: {
+      type: String,
+      required: true,
+      enum: ["Admin", "Freelancer"],
     },
   },
   { timestamps: true }
