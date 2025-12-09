@@ -61,6 +61,7 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
 /**
  * ✅ Safety Rule
  * Ensure item has ONLY salonId OR freelancerId
