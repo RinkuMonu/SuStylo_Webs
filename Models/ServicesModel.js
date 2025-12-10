@@ -7,10 +7,9 @@ const serviceSchema = new mongoose.Schema(
   {
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
-
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     name: { type: String, required: true, trim: true },
-    slug: { type: String, index: true }, // 🔥 Added slug field
+    slug: { type: String, index: true },
     description: { type: String, trim: true },
     price: { type: Number, required: true },
     discountPrice: { type: Number },
