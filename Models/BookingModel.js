@@ -4,7 +4,6 @@ const bookingSchema = new mongoose.Schema(
   {
     bookingType: { type: String, enum: ["preBooking", "urgentBooking"], required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },

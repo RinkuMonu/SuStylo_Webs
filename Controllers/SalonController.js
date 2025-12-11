@@ -1,5 +1,6 @@
 import Salon from "../Models/SalonModel.js";
 import Service from "../Models/ServicesModel.js";
+import Category from "../Models/CategoryModel.js";
 import Staff from "../Models/StaffModel.js";
 import Schedule from "../Models/ScheduleModel.js";
 import Review from "../Models/ReviewModel.js";
@@ -188,21 +189,45 @@ export const getSalonById = async (req, res) => {
     }
 
     // Fetch related data
-    const [services, staff, reviews] = await Promise.all([
-      Service.find({ salonId: salon._id }),
+    const [rawServices, staff, reviews] = await Promise.all([
+      Service.find({ salonId: salon._id }).populate("categoryId"),
       Staff.find({ salonId: salon._id }),
       Review.find({ reviewFor: "Salon", targetId: salon._id })
-        .populate("user", "name email")  // optional
-        .populate("approvedBy", "name") // optional
+        .populate("user", "name email")
+        .populate("approvedBy", "name")
     ]);
+
+    // --- Services को Gender (Male/Female) और फिर Category ID के आधार पर ग्रुप करने के लिए नया लॉजिक ---
+    const categorizedServices = rawServices.reduce((acc, service) => {
+      if (service.categoryId && service.categoryId.name && service.gender) {
+        const gender = service.gender.toLowerCase(); 
+        const categoryName = service.categoryId.name;
+        if (!acc[gender]) {
+          acc[gender] = {};
+        }
+
+        const categoryInfo = service.categoryId.toObject(); 
+        const serviceObject = service.toObject();
+        delete serviceObject.categoryId; 
+        if (!acc[gender][categoryName]) {
+          acc[gender][categoryName] = {
+            category: categoryInfo,
+            services: [] 
+          };
+        }
+        acc[gender][categoryName].services.push(serviceObject);
+      }
+      return acc;
+    }, {});
+
 
     res.json({
       success: true,
       salon: {
         ...salon.toObject(),
-        services,
+        services: categorizedServices, // UPDATED: Gender -> Category -> Services
         staff,
-        reviews, // 👈 ADDING REVIEWS HERE
+        reviews,
       },
     });
 
@@ -211,7 +236,6 @@ export const getSalonById = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 export const updateSalon = async (req, res) => {
   try {

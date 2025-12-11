@@ -93,7 +93,7 @@
 import Freelancer from "../Models/FreelancerModel.js";
 import Service from "../Models/ServicesModel.js";
 import Staff from "../Models/StaffModel.js";
-
+import Review from "../Models/ReviewModel.js";
 import Commission from "../Models/CommissionModel.js";
 
 
@@ -242,10 +242,40 @@ export const getFreelancerById = async (req, res) => {
   try {
     const freelancer = await Freelancer.findById(req.params.id).populate("employees referrals");
     if (!freelancer) return res.status(404).json({ success: false, message: "Freelancer not found" });
+    // const services = await Service.find({ freelancerId: freelancer._id }).populate("categoryId");
 
-    const services = await Service.find({ freelancerId: freelancer._id });
+    const rawServices = await Service.find({ freelancerId: freelancer._id }).populate("categoryId");
+    const categorizedServices = rawServices.reduce((acc, service) => {
+      if (service.categoryId && service.categoryId.name && service.gender) {
+          const gender = service.gender.toLowerCase();
+          const categoryName = service.categoryId.name;
+          
+          // 1. **acc[gender] check ab zaroori nahi hai, kyuki humne initial value mein set kar diya hai.**
+          // Lekin agar koi unknown gender aata hai toh yeh abhi bhi important hai.
 
-    res.json({ success: true, freelancer: { ...freelancer.toObject(), services } });
+          // Agar service ka gender male/female ke alawa hai (jaise unisex), toh use dynamically add karein
+          if (!acc[gender]) { 
+              acc[gender] = {}; 
+          }
+
+          const categoryInfo = service.categoryId.toObject(); 
+          const serviceObject = service.toObject();
+          delete serviceObject.categoryId; 
+
+          if (!acc[gender][categoryName]) {
+              acc[gender][categoryName] = {
+                  category: categoryInfo,
+                  services: [] 
+              };
+          }
+          acc[gender][categoryName].services.push(serviceObject);
+      }
+      return acc;
+  }, { male: {}, female: {} });
+
+    const reviews = await Review.find({ reviewFor: "Freelancer", targetId: freelancer._id, status: "approved" }).populate("user");
+    freelancer.reviews = reviews;
+    res.json({ success: true, freelancer: { ...freelancer.toObject(), services:categorizedServices,reviews:reviews } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
