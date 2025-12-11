@@ -108,56 +108,32 @@ export const createBlog = async (req, res) => {
       category,
       metaTitle,
       metaDescription,
-    } = req.body || {};
+    } = req.body;
 
     if (!title || !author) {
-      return res.status(400).json({ success: false, message: "title and author are required" });
+      return res.status(400).json({ success: false, message: "title and author required" });
     }
 
-    // Build public URLs for files saved by multer
-    const images = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
-    const coverImage = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
+    // ✅ CLOUDINARY URLs
+    const images =
+      req.files?.images?.map((file) => file.path || file.secure_url) || [];
 
-    // Handle embedded base64 images
-    const embeddedFolder = "embedded";
+    const coverImage =
+      req.files?.coverImage?.[0]?.path ||
+      req.files?.coverImage?.[0]?.secure_url ||
+      "";
 
-    // finalContentHtml: replace inline data URLs if present
-    let finalContentHtml = contentHtml;
-    if (contentHtml && typeof contentHtml === "string" && contentHtml.includes("data:")) {
-      finalContentHtml = await replaceBase64InHtml(contentHtml, embeddedFolder);
-    }
-
-    // Parse contentJson if string and replace embedded images
-    let parsedContentJson = contentJson;
-    if (typeof contentJson === "string") {
-      try {
-        // Trim outer quotes if client wrapped the JSON string in quotes
-        const cleaned = contentJson.trim().replace(/^"(.*)"$/s, "$1");
-        parsedContentJson = JSON.parse(cleaned);
-      } catch (e) {
-        // fallback: try to unescape backslashes then parse
-        try {
-          parsedContentJson = JSON.parse(contentJson.replace(/\\"/g, '"'));
-        } catch (err) {
-          return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
-        }
-      }
-    }
-
-    if (parsedContentJson) {
-      parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
-    }
-
-    // Normalize tags
+    // tags normalize
     let parsedTags = [];
-    if (typeof tags === "string") parsedTags = tags.split(",").map(t => t.trim()).filter(Boolean);
-    else if (Array.isArray(tags)) parsedTags = tags.map(t => String(t).trim()).filter(Boolean);
+    if (typeof tags === "string") {
+      parsedTags = tags.split(",").map((t) => t.trim());
+    }
 
     const blog = await Blog.create({
       title,
       slug,
-      contentHtml: finalContentHtml,
-      contentJson: parsedContentJson,
+      contentHtml,
+      contentJson,
       author,
       images,
       coverImage,
@@ -167,93 +143,214 @@ export const createBlog = async (req, res) => {
       metaDescription,
     });
 
-    return res.status(201).json({ success: true, data: blog });
+    res.status(201).json({ success: true, data: blog });
   } catch (err) {
     console.error("createBlog error:", err);
-    return res.status(500).json({ success: false, message: "Server error", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// export const createBlog = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       slug,
+//       contentHtml,
+//       contentJson,
+//       author,
+//       tags,
+//       category,
+//       metaTitle,
+//       metaDescription,
+//     } = req.body || {};
+
+//     if (!title || !author) {
+//       return res.status(400).json({ success: false, message: "title and author are required" });
+//     }
+
+//     // Build public URLs for files saved by multer
+//     const images = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
+//     const coverImage = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
+
+//     // Handle embedded base64 images
+//     const embeddedFolder = "embedded";
+
+//     // finalContentHtml: replace inline data URLs if present
+//     let finalContentHtml = contentHtml;
+//     if (contentHtml && typeof contentHtml === "string" && contentHtml.includes("data:")) {
+//       finalContentHtml = await replaceBase64InHtml(contentHtml, embeddedFolder);
+//     }
+
+//     // Parse contentJson if string and replace embedded images
+//     let parsedContentJson = contentJson;
+//     if (typeof contentJson === "string") {
+//       try {
+//         // Trim outer quotes if client wrapped the JSON string in quotes
+//         const cleaned = contentJson.trim().replace(/^"(.*)"$/s, "$1");
+//         parsedContentJson = JSON.parse(cleaned);
+//       } catch (e) {
+//         // fallback: try to unescape backslashes then parse
+//         try {
+//           parsedContentJson = JSON.parse(contentJson.replace(/\\"/g, '"'));
+//         } catch (err) {
+//           return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
+//         }
+//       }
+//     }
+
+//     if (parsedContentJson) {
+//       parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
+//     }
+
+//     // Normalize tags
+//     let parsedTags = [];
+//     if (typeof tags === "string") parsedTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+//     else if (Array.isArray(tags)) parsedTags = tags.map(t => String(t).trim()).filter(Boolean);
+
+//     const blog = await Blog.create({
+//       title,
+//       slug,
+//       contentHtml: finalContentHtml,
+//       contentJson: parsedContentJson,
+//       author,
+//       images,
+//       coverImage,
+//       tags: parsedTags,
+//       category,
+//       metaTitle,
+//       metaDescription,
+//     });
+
+//     return res.status(201).json({ success: true, data: blog });
+//   } catch (err) {
+//     console.error("createBlog error:", err);
+//     return res.status(500).json({ success: false, message: "Server error", error: err.message });
+//   }
+// };
 
 /** UPDATE blog controller */
 export const updateBlog = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id) return res.status(400).json({ success: false, message: "Missing blog id" });
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
 
-    console.log("---- incoming updateBlog request ----");
-    console.log("req.body:", JSON.stringify(req.body || {}, null, 2));
-    console.dir(req.files || {}, { depth: null });
+    const newImages =
+      req.files?.images?.map((file) => file.path || file.secure_url) || [];
 
-    const {
-      title,
-      slug,
-      contentHtml,
-      contentJson,
-      author,
-      tags,
-      category,
-      metaTitle,
-      metaDescription,
-    } = req.body || {};
+    const newCover =
+      req.files?.coverImage?.[0]?.path ||
+      req.files?.coverImage?.[0]?.secure_url;
 
-    const existing = await Blog.findById(id);
-    if (!existing) return res.status(404).json({ success: false, message: "Blog not found" });
+    blog.title = req.body.title ?? blog.title;
+    blog.slug = req.body.slug ?? blog.slug;
+    blog.contentHtml = req.body.contentHtml ?? blog.contentHtml;
+    blog.contentJson = req.body.contentJson ?? blog.contentJson;
+    blog.author = req.body.author ?? blog.author;
 
-    // Build public URLs for any new files uploaded
-    const newImages = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
-    const newCover = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
+    blog.images = newImages.length
+      ? [...blog.images, ...newImages]
+      : blog.images;
 
-    const images = newImages.length ? [...(existing.images || []), ...newImages] : existing.images || [];
-    const coverImage = newCover || existing.coverImage || "";
+    blog.coverImage = newCover || blog.coverImage;
 
-    // Handle embedded images for updated content
-    const embeddedFolder = "embedded";
-    let finalContentHtml = contentHtml ?? existing.contentHtml;
-    if (finalContentHtml && typeof finalContentHtml === "string" && finalContentHtml.includes("data:")) {
-      finalContentHtml = await replaceBase64InHtml(finalContentHtml, embeddedFolder);
+    if (req.body.tags) {
+      blog.tags = typeof req.body.tags === "string"
+        ? req.body.tags.split(",").map(t => t.trim())
+        : req.body.tags;
     }
 
-    let parsedContentJson = contentJson ?? existing.contentJson;
-    if (typeof parsedContentJson === "string") {
-      try {
-        const cleaned = parsedContentJson.trim().replace(/^"(.*)"$/s, "$1");
-        parsedContentJson = JSON.parse(cleaned);
-      } catch (e) {
-        try {
-          parsedContentJson = JSON.parse(parsedContentJson.replace(/\\"/g, '"'));
-        } catch (err) {
-          return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
-        }
-      }
-    }
-    if (parsedContentJson) {
-      parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
-    }
+    blog.category = req.body.category ?? blog.category;
+    blog.metaTitle = req.body.metaTitle ?? blog.metaTitle;
+    blog.metaDescription = req.body.metaDescription ?? blog.metaDescription;
 
-    // Normalize tags
-    let parsedTags = Array.isArray(tags) ? tags : (typeof tags === "string" ? tags.split(",").map(t => t.trim()).filter(Boolean) : existing.tags);
+    await blog.save();
 
-    // Update fields
-    existing.title = title ?? existing.title;
-    existing.slug = slug ?? existing.slug;
-    existing.contentHtml = finalContentHtml;
-    existing.contentJson = parsedContentJson;
-    existing.author = author ?? existing.author;
-    existing.images = images;
-    existing.coverImage = coverImage;
-    existing.tags = parsedTags;
-    existing.category = category ?? existing.category;
-    existing.metaTitle = metaTitle ?? existing.metaTitle;
-    existing.metaDescription = metaDescription ?? existing.metaDescription;
-
-    await existing.save();
-
-    return res.status(200).json({ success: true, data: existing });
+    res.status(200).json({ success: true, data: blog });
   } catch (err) {
     console.error("updateBlog error:", err);
-    return res.status(500).json({ success: false, message: "Server error", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// export const updateBlog = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     if (!id) return res.status(400).json({ success: false, message: "Missing blog id" });
+
+//     console.log("---- incoming updateBlog request ----");
+//     console.log("req.body:", JSON.stringify(req.body || {}, null, 2));
+//     console.dir(req.files || {}, { depth: null });
+
+//     const {
+//       title,
+//       slug,
+//       contentHtml,
+//       contentJson,
+//       author,
+//       tags,
+//       category,
+//       metaTitle,
+//       metaDescription,
+//     } = req.body || {};
+
+//     const existing = await Blog.findById(id);
+//     if (!existing) return res.status(404).json({ success: false, message: "Blog not found" });
+
+//     // Build public URLs for any new files uploaded
+//     const newImages = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
+//     const newCover = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
+
+//     const images = newImages.length ? [...(existing.images || []), ...newImages] : existing.images || [];
+//     const coverImage = newCover || existing.coverImage || "";
+
+//     // Handle embedded images for updated content
+//     const embeddedFolder = "embedded";
+//     let finalContentHtml = contentHtml ?? existing.contentHtml;
+//     if (finalContentHtml && typeof finalContentHtml === "string" && finalContentHtml.includes("data:")) {
+//       finalContentHtml = await replaceBase64InHtml(finalContentHtml, embeddedFolder);
+//     }
+
+//     let parsedContentJson = contentJson ?? existing.contentJson;
+//     if (typeof parsedContentJson === "string") {
+//       try {
+//         const cleaned = parsedContentJson.trim().replace(/^"(.*)"$/s, "$1");
+//         parsedContentJson = JSON.parse(cleaned);
+//       } catch (e) {
+//         try {
+//           parsedContentJson = JSON.parse(parsedContentJson.replace(/\\"/g, '"'));
+//         } catch (err) {
+//           return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
+//         }
+//       }
+//     }
+//     if (parsedContentJson) {
+//       parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
+//     }
+
+//     // Normalize tags
+//     let parsedTags = Array.isArray(tags) ? tags : (typeof tags === "string" ? tags.split(",").map(t => t.trim()).filter(Boolean) : existing.tags);
+
+//     // Update fields
+//     existing.title = title ?? existing.title;
+//     existing.slug = slug ?? existing.slug;
+//     existing.contentHtml = finalContentHtml;
+//     existing.contentJson = parsedContentJson;
+//     existing.author = author ?? existing.author;
+//     existing.images = images;
+//     existing.coverImage = coverImage;
+//     existing.tags = parsedTags;
+//     existing.category = category ?? existing.category;
+//     existing.metaTitle = metaTitle ?? existing.metaTitle;
+//     existing.metaDescription = metaDescription ?? existing.metaDescription;
+
+//     await existing.save();
+
+//     return res.status(200).json({ success: true, data: existing });
+//   } catch (err) {
+//     console.error("updateBlog error:", err);
+//     return res.status(500).json({ success: false, message: "Server error", error: err.message });
+//   }
+// };
 
 
 export const deleteBlog = async (req, res) => {
@@ -276,16 +373,61 @@ export const deleteBlog = async (req, res) => {
 
 export const getBlogs = async (req, res) => {
   try {
-    const blogs = await Blog.find()
-      .populate("author", "name email")
-      .sort({ createdAt: -1 });
+    // Parse query parameters with defaults
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 3;
+    const skip = (page - 1) * limit;
 
-    return res.status(200).json({ success: true, data: blogs });
+    // Build query
+    const query = {};
+
+    // Optional filters (you can add these later)
+    // if (req.query.category) query.category = req.query.category;
+    // if (req.query.isPublished) query.isPublished = req.query.isPublished === 'true';
+    
+    // Execute queries in parallel for better performance
+    const [blogs, total] = await Promise.all([
+      Blog.find(query)
+        .populate("author", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Blog.countDocuments(query)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+
+    return res.status(200).json({
+      success: true,
+      data: blogs,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        hasNextPage,
+        limit
+      }
+    });
   } catch (error) {
     console.error("Get Blogs Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// export const getBlogs = async (req, res) => {
+//   try {
+//     const blogs = await Blog.find()
+//       .populate("author", "name email")
+//       .sort({ createdAt: -1 });
+
+//     return res.status(200).json({ success: true, data: blogs });
+//   } catch (error) {
+//     console.error("Get Blogs Error:", error);
+//     return res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 
 export const getBlogById = async (req, res) => {
   try {
@@ -330,6 +472,51 @@ export const getBlogBySlug = async (req, res) => {
   } catch (error) {
     console.error("Get Blog By Slug Error:", error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getBlogsByCategory = async (req, res) => {
+  try {
+    let { category } = req.params;
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: "Category is required"
+      });
+    }
+
+    // Convert category param to case-insensitive regex
+    const categoryRegex = new RegExp(`^${category}$`, "i");
+
+    const blogs = await Blog.find({ category: categoryRegex })
+      .populate("author", "name email")
+      .populate({
+        path: "comments",
+        match: { status: "approved" },
+        populate: { path: "user", select: "name email" }
+      })
+      .sort({ createdAt: -1 });
+
+    if (!blogs.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No blogs found in this category"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: blogs.length,
+      data: blogs
+    });
+
+  } catch (error) {
+    console.error("Get Blogs By Category Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
