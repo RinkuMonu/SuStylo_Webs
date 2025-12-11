@@ -37,6 +37,7 @@ router.get("/category/:category", getBlogsByCategory);
 router.post("/:blogId/comment", addComment);
 router.get("/", getCommentsByStatus);
 router.put("/comment/:id/approve", approveComment);
+
 router.put("/comment/:id/reject", rejectComment);
 
 export default router;
