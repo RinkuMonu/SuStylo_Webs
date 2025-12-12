@@ -13,8 +13,8 @@ const scheduleSchema = new mongoose.Schema(
     },
 
     isOpen: { type: Boolean, default: true },
-    openingTime: { type: String, required: true }, // "09:00"
-    closingTime: { type: String, required: true }, // "18:00"
+    openingTime: { type: String, required: false }, // "09:00"
+    closingTime: { type: String, required: false }, // "18:00"
 
     repeatType: {
       type: String,
