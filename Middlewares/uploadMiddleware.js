@@ -7,10 +7,10 @@ import fs from "fs";
 
 // -------------------- Cloudinary client (default export) --------------------
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
-  api_key: process.env.CLOUDINARY_API_KEY || "",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "",
-});
+    cloud_name: "dgcnzpurv",
+    api_key: "723517284524997",
+    api_secret: "kavO7bGj_c8gXrZQ7JAGGVXR6Tc",
+ });
 
 export default cloudinary;
 
