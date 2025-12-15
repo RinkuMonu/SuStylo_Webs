@@ -210,6 +210,27 @@ export const getAdminDetails = async (req, res) => {
   }
 };
 
+export const getAllSuperAdmins = async (req, res) => {
+  try {
+    const superAdmins = await Admin.find({
+      role: ADMIN_ROLES.SUPER_ADMIN,
+      isDeleted: { $ne: true }
+    }).select("-passwordHash -otp");
+
+    return res.status(200).json({
+      success: true,
+      count: superAdmins.length,
+      data: superAdmins
+    });
+  } catch (err) {
+    console.error("getAllSuperAdmins error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message
+    });
+  }
+};
+
 export const deleteAdmin = async (req, res) => {
   try {
     const adminId = req.params.id;

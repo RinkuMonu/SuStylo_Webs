@@ -7,6 +7,7 @@ import {
   resetAdminPassword,
   updateProfile,
   getAdminDetails,
+  getAllSuperAdmins,
   deleteAdmin,
 } from "../Controllers/AdminController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js"; // JWT auth middleware
@@ -32,6 +33,7 @@ router.put(
 );
 
 router.get("/details/:id", authenticateAndAuthorize(), getAdminDetails);
+router.get("/alladmins/", authenticateAndAuthorize(), getAllSuperAdmins);
 router.delete("/delete/:id", authenticateAndAuthorize(), deleteAdmin);
 
 export default router;
