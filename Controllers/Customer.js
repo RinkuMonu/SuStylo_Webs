@@ -177,22 +177,22 @@ export const loginCustomer = async (req, res) => {
 
     // Update coordinates if provided
     // Update coordinates if provided
-    if (latitude !== undefined && longitude !== undefined) {
-      // Address ke andar coordinates (GeoJSON)
-      customer.address = customer.address || {};
-      customer.address.coordinates = {
-        type: "Point",
-        coordinates: [longitude, latitude], // [lng, lat]
-      };
+    // if (latitude !== undefined && longitude !== undefined) {
+    //   // Address ke andar coordinates (GeoJSON)
+    //   customer.address = customer.address || {};
+    //   customer.address.coordinates = {
+    //     type: "Point",
+    //     coordinates: [longitude, latitude], // [lng, lat]
+    //   };
 
-      // Login location history
-      customer.loginLocations = customer.loginLocations || [];
-      customer.loginLocations.push({
-        type: "Point",
-        coordinates: [longitude, latitude], // [lng, lat]
-        loggedAt: new Date(),
-      });
-    }
+    //   // Login location history
+    //   customer.loginLocations = customer.loginLocations || [];
+    //   customer.loginLocations.push({
+    //     type: "Point",
+    //     coordinates: [longitude, latitude], // [lng, lat]
+    //     loggedAt: new Date(),
+    //   });
+    // }
 
 
     await customer.save();

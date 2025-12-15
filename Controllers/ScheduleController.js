@@ -275,6 +275,18 @@ export const getScheduleById = async (req, res) => {
   }
 };
 
+export const getScheduleBySalonId = async (req, res) => {
+  try {
+    const salonId = req.params.id;  
+    const schedules = await Schedule.find({ salonId })
+      .populate("salonId freelancerId")
+      .populate("slots.staff")
+      .populate("slots.service"); 
+    res.json({ success: true, schedules });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 export const updateSchedule = async (req, res) => {
   try {
     let schedule = await Schedule.findById(req.params.id);
