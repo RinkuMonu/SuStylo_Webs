@@ -13,8 +13,22 @@ const router = express.Router();
 router.post("/", createContact);
 
 // 🔹 Admin Routes
-router.get("/", authenticateAndAuthorize(["super_admin"]), getAllContacts);
-router.get("/:id", authenticateAndAuthorize(["super_admin"]), getContactById);
-router.delete("/:id", authenticateAndAuthorize(["super_admin"]), deleteContact);
+router.get(
+  "/all",
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"], { forbidden: "Forbidden!" }),
+  getAllContacts
+);
+
+router.get(
+  "/:id",
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"]),
+  getContactById
+);
+
+router.delete(
+  "/:id",
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"]),
+  deleteContact
+);
 
 export default router;
