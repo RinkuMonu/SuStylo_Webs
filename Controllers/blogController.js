@@ -15,220 +15,104 @@ const mimeToExt = (mime) => {
   return map[mime] || "";
 };
 
-/** Save base64 data URL to uploads/<folder> and return public URL */
-const saveDataUrlToFile = async (dataUrl, fxolder = "embedded") => {
+const saveDataUrlToFile = async (dataUrl, folder = "embedded") => {
   const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
   if (!matches) throw new Error("Invalid data URL");
 
   const mime = matches[1];
   const b64 = matches[2];
-  const ext = mimeToExt(mime) || "";
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}${ext}`;
+  const ext = mimeToExt(mime);
+
+  const fileName = `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 9)}${ext}`;
 
   const uploadsRoot = path.join(process.cwd(), "uploads");
   const destDir = path.join(uploadsRoot, folder);
+
   await fs.mkdir(destDir, { recursive: true });
+
   const filePath = path.join(destDir, fileName);
-
-  const buffer = Buffer.from(b64, "base64");
-  await fs.writeFile(filePath, buffer);
+  await fs.writeFile(filePath, Buffer.from(b64, "base64"));
 
   const baseUrl = (process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, "");
-  const rel = path.posix.join("uploads", folder, fileName);
-  return `${baseUrl}/${rel}`;
+  return `${baseUrl}/uploads/${folder}/${fileName}`;
 };
 
-/** Replace base64 <img src="data:..."> in HTML with saved file URLs */
-const replaceBase64InHtml = async (html, folder) => {
-  if (!html || typeof html !== "string") return html;
-  const dataUrlRegex = /<img[^>]+src=(["'])(data:[^"']+)\1[^>]*>/gi;
-  const matches = [...html.matchAll(dataUrlRegex)];
-  if (!matches.length) return html;
-
-  let newHtml = html;
-  for (const m of matches) {
-    const fullMatch = m[0];
-    const dataUrl = m[2];
-    try {
-      const savedUrl = await saveDataUrlToFile(dataUrl, folder);
-      const replaced = fullMatch.replace(dataUrl, savedUrl);
-      newHtml = newHtml.replace(fullMatch, replaced);
-    } catch (err) {
-      console.error("Failed to save embedded HTML image:", err.message);
-      // leave original src on failure
-    }
-  }
-  return newHtml;
-};
-
-/** Traverse Tiptap JSON and replace image node attrs.src that start with data: */
-const traverseAndReplaceDataUrlsInJson = async (node, folder) => {
-  if (!node) return node;
-  if (Array.isArray(node)) {
-    return Promise.all(node.map(child => traverseAndReplaceDataUrlsInJson(child, folder)));
-  }
-  if (typeof node === "object") {
-    if (node.type === "image" && node.attrs && typeof node.attrs.src === "string" && node.attrs.src.startsWith("data:")) {
-      try {
-        const savedUrl = await saveDataUrlToFile(node.attrs.src, folder);
-        return { ...node, attrs: { ...node.attrs, src: savedUrl } };
-      } catch (err) {
-        console.error("Failed to save embedded JSON image:", err.message);
-        return node;
-      }
-    }
-    const out = {};
-    for (const key of Object.keys(node)) {
-      out[key] = await traverseAndReplaceDataUrlsInJson(node[key], folder);
-    }
-    return out;
-  }
-  return node;
-};
-
-/** Convert multer local file path to public URL under /uploads */
-const toPublicUrl = (filePath) => {
-  if (!filePath) return "";
-  const uploadsRoot = path.join(process.cwd(), "uploads");
-  const rel = path.relative(uploadsRoot, filePath).split(path.sep).join("/");
-  const baseUrl = (process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, "");
-  return `${baseUrl}/uploads/${rel}`;
-};
-
-/** CREATE blog controller */
 export const createBlog = async (req, res) => {
   try {
-    const {
-      title,
-      slug,
-      contentHtml,
-      contentJson,
-      author,
-      tags,
-      category,
-      metaTitle,
-      metaDescription,
-    } = req.body;
+    let { title, slug, contentJson, contentHtml, category, metaTitle, metaDescription } = req.body;
 
-    if (!title || !author) {
-      return res.status(400).json({ success: false, message: "title and author required" });
+    let parsedContent = null;
+    let embeddedImages = [];
+
+    /* --------------------------------------------------------
+       1. Process TipTap JSON & save embedded Base64 images
+    --------------------------------------------------------- */
+    if (contentJson) {
+      parsedContent = JSON.parse(contentJson);
+
+      const processNode = async (node) => {
+        if (!node) return;
+
+        // If node contains base64 image
+        if (node.type === "image" && node.attrs?.src?.startsWith("data:image/")) {
+          const savedUrl = await saveDataUrlToFile(node.attrs.src, "embedded");
+          node.attrs.src = savedUrl;
+          embeddedImages.push(savedUrl);
+        }
+
+        if (Array.isArray(node.content)) {
+          for (let child of node.content) {
+            await processNode(child);
+          }
+        }
+      };
+
+      await processNode(parsedContent);
+      contentJson = JSON.stringify(parsedContent);
     }
 
-    // ✅ CLOUDINARY URLs
-    const images =
-      req.files?.images?.map((file) => file.path || file.secure_url) || [];
+    /* --------------------------------------------------------
+       2. Handle Multer Uploads (Cloudinary URLs)
+    --------------------------------------------------------- */
 
-    const coverImage =
-      req.files?.coverImage?.[0]?.path ||
-      req.files?.coverImage?.[0]?.secure_url ||
-      "";
+    const uploadedImages = req.files?.images?.map((f) => f.path) || [];
+    const uploadedCoverImage = req.files?.coverImage?.[0]?.path || "";
 
-    // tags normalize
-    let parsedTags = [];
-    if (typeof tags === "string") {
-      parsedTags = tags.split(",").map((t) => t.trim());
-    }
+    /* --------------------------------------------------------
+       3. Create Blog Document
+    --------------------------------------------------------- */
 
     const blog = await Blog.create({
       title,
       slug,
       contentHtml,
       contentJson,
-      author,
-      images,
-      coverImage,
-      tags: parsedTags,
       category,
       metaTitle,
       metaDescription,
+
+      images: [...uploadedImages, ...embeddedImages],
+      coverImage: uploadedCoverImage || embeddedImages[0] || "",
     });
 
-    res.status(201).json({ success: true, data: blog });
-  } catch (err) {
-    console.error("createBlog error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(201).json({
+      success: true,
+      message: "Blog created successfully!",
+      data: blog,
+    });
+
+  } catch (error) {
+    console.error("Create Blog Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create blog",
+      error: error.message,
+    });
   }
 };
 
-// export const createBlog = async (req, res) => {
-//   try {
-//     const {
-//       title,
-//       slug,
-//       contentHtml,
-//       contentJson,
-//       author,
-//       tags,
-//       category,
-//       metaTitle,
-//       metaDescription,
-//     } = req.body || {};
-
-//     if (!title || !author) {
-//       return res.status(400).json({ success: false, message: "title and author are required" });
-//     }
-
-//     // Build public URLs for files saved by multer
-//     const images = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
-//     const coverImage = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
-
-//     // Handle embedded base64 images
-//     const embeddedFolder = "embedded";
-
-//     // finalContentHtml: replace inline data URLs if present
-//     let finalContentHtml = contentHtml;
-//     if (contentHtml && typeof contentHtml === "string" && contentHtml.includes("data:")) {
-//       finalContentHtml = await replaceBase64InHtml(contentHtml, embeddedFolder);
-//     }
-
-//     // Parse contentJson if string and replace embedded images
-//     let parsedContentJson = contentJson;
-//     if (typeof contentJson === "string") {
-//       try {
-//         // Trim outer quotes if client wrapped the JSON string in quotes
-//         const cleaned = contentJson.trim().replace(/^"(.*)"$/s, "$1");
-//         parsedContentJson = JSON.parse(cleaned);
-//       } catch (e) {
-//         // fallback: try to unescape backslashes then parse
-//         try {
-//           parsedContentJson = JSON.parse(contentJson.replace(/\\"/g, '"'));
-//         } catch (err) {
-//           return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
-//         }
-//       }
-//     }
-
-//     if (parsedContentJson) {
-//       parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
-//     }
-
-//     // Normalize tags
-//     let parsedTags = [];
-//     if (typeof tags === "string") parsedTags = tags.split(",").map(t => t.trim()).filter(Boolean);
-//     else if (Array.isArray(tags)) parsedTags = tags.map(t => String(t).trim()).filter(Boolean);
-
-//     const blog = await Blog.create({
-//       title,
-//       slug,
-//       contentHtml: finalContentHtml,
-//       contentJson: parsedContentJson,
-//       author,
-//       images,
-//       coverImage,
-//       tags: parsedTags,
-//       category,
-//       metaTitle,
-//       metaDescription,
-//     });
-
-//     return res.status(201).json({ success: true, data: blog });
-//   } catch (err) {
-//     console.error("createBlog error:", err);
-//     return res.status(500).json({ success: false, message: "Server error", error: err.message });
-//   }
-// };
-
-/** UPDATE blog controller */
 export const updateBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -271,87 +155,6 @@ export const updateBlog = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-// export const updateBlog = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     if (!id) return res.status(400).json({ success: false, message: "Missing blog id" });
-
-//     console.log("---- incoming updateBlog request ----");
-//     console.log("req.body:", JSON.stringify(req.body || {}, null, 2));
-//     console.dir(req.files || {}, { depth: null });
-
-//     const {
-//       title,
-//       slug,
-//       contentHtml,
-//       contentJson,
-//       author,
-//       tags,
-//       category,
-//       metaTitle,
-//       metaDescription,
-//     } = req.body || {};
-
-//     const existing = await Blog.findById(id);
-//     if (!existing) return res.status(404).json({ success: false, message: "Blog not found" });
-
-//     // Build public URLs for any new files uploaded
-//     const newImages = (req.files?.images || []).map(f => toPublicUrl(f.path)).filter(Boolean);
-//     const newCover = req.files?.coverImage?.[0]?.path ? toPublicUrl(req.files.coverImage[0].path) : "";
-
-//     const images = newImages.length ? [...(existing.images || []), ...newImages] : existing.images || [];
-//     const coverImage = newCover || existing.coverImage || "";
-
-//     // Handle embedded images for updated content
-//     const embeddedFolder = "embedded";
-//     let finalContentHtml = contentHtml ?? existing.contentHtml;
-//     if (finalContentHtml && typeof finalContentHtml === "string" && finalContentHtml.includes("data:")) {
-//       finalContentHtml = await replaceBase64InHtml(finalContentHtml, embeddedFolder);
-//     }
-
-//     let parsedContentJson = contentJson ?? existing.contentJson;
-//     if (typeof parsedContentJson === "string") {
-//       try {
-//         const cleaned = parsedContentJson.trim().replace(/^"(.*)"$/s, "$1");
-//         parsedContentJson = JSON.parse(cleaned);
-//       } catch (e) {
-//         try {
-//           parsedContentJson = JSON.parse(parsedContentJson.replace(/\\"/g, '"'));
-//         } catch (err) {
-//           return res.status(400).json({ success: false, message: "Invalid contentJson JSON" });
-//         }
-//       }
-//     }
-//     if (parsedContentJson) {
-//       parsedContentJson = await traverseAndReplaceDataUrlsInJson(parsedContentJson, embeddedFolder);
-//     }
-
-//     // Normalize tags
-//     let parsedTags = Array.isArray(tags) ? tags : (typeof tags === "string" ? tags.split(",").map(t => t.trim()).filter(Boolean) : existing.tags);
-
-//     // Update fields
-//     existing.title = title ?? existing.title;
-//     existing.slug = slug ?? existing.slug;
-//     existing.contentHtml = finalContentHtml;
-//     existing.contentJson = parsedContentJson;
-//     existing.author = author ?? existing.author;
-//     existing.images = images;
-//     existing.coverImage = coverImage;
-//     existing.tags = parsedTags;
-//     existing.category = category ?? existing.category;
-//     existing.metaTitle = metaTitle ?? existing.metaTitle;
-//     existing.metaDescription = metaDescription ?? existing.metaDescription;
-
-//     await existing.save();
-
-//     return res.status(200).json({ success: true, data: existing });
-//   } catch (err) {
-//     console.error("updateBlog error:", err);
-//     return res.status(500).json({ success: false, message: "Server error", error: err.message });
-//   }
-// };
-
 
 export const deleteBlog = async (req, res) => {
   try {
@@ -415,19 +218,6 @@ export const getBlogs = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// export const getBlogs = async (req, res) => {
-//   try {
-//     const blogs = await Blog.find()
-//       .populate("author", "name email")
-//       .sort({ createdAt: -1 });
-
-//     return res.status(200).json({ success: true, data: blogs });
-//   } catch (error) {
-//     console.error("Get Blogs Error:", error);
-//     return res.status(500).json({ success: false, message: error.message });
-//   }
-// };
 
 export const getBlogById = async (req, res) => {
   try {
@@ -552,12 +342,15 @@ export const addComment = async (req, res) => {
 
 export const getCommentsByStatus = async (req, res) => {
   try {
-    const { status, blogId } = req.query;
+    const { status, blogId } = req.params;
 
     // Validate status
     const allowedStatus = ["pending", "approved", "rejected"];
     if (status && !allowedStatus.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid status filter" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status filter"
+      });
     }
 
     // Build query
@@ -566,14 +359,20 @@ export const getCommentsByStatus = async (req, res) => {
     if (blogId) query.blog = blogId;
 
     const comments = await Comment.find(query)
-      .populate("user", "name email")  // populate user details
-      .populate("blog", "title slug")  // populate blog info
+      .populate("user", "name email")
+      .populate("blog", "title slug")
       .sort({ createdAt: -1 });
 
-    return res.status(200).json({ success: true, data: comments });
+    return res.status(200).json({
+      success: true,
+      data: comments
+    });
   } catch (err) {
     console.error("getCommentsByStatus error:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 

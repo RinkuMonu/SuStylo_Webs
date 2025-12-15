@@ -26,7 +26,14 @@ const uploadBlogImages = upload.fields([
   { name: "coverImage", maxCount: 1 },
 ]);
 
-router.post("/create", uploadBlogImages, createBlog);
+router.post(
+  "/create",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "coverImage", maxCount: 1 },
+  ]),
+  createBlog
+);
 router.put("/update/:id", uploadBlogImages, updateBlog);
 router.delete("/delete/:id", deleteBlog);
 
@@ -35,7 +42,8 @@ router.get("/:id", getBlogById);
 router.get("/slug/:slug", getBlogBySlug);
 router.get("/category/:category", getBlogsByCategory);
 router.post("/:blogId/comment", addComment);
-router.get("/", getCommentsByStatus);
+router.get("/:status", getCommentsByStatus);
+router.get("/:status/:blogId", getCommentsByStatus);
 router.put("/comment/:id/approve", approveComment);
 
 router.put("/comment/:id/reject", rejectComment);

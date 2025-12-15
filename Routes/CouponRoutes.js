@@ -4,8 +4,7 @@ import {
   getAllCoupons,
   getCouponById,
   updateCoupon,
-  deleteCoupon,
-  validateCoupon,
+  deleteCoupon
 } from "../Controllers/CouponController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
@@ -36,6 +35,5 @@ router.delete(
 // Public routes
 router.get("/", getAllCoupons);
 router.get("/:id", getCouponById);
-router.post("/validate", validateCoupon);
 
 export default router;
