@@ -13,6 +13,7 @@ import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 router.get("/:ownerId", authenticateAndAuthorize(["customer"]), getWallet);
 // router.get("/:ownerId", getWallet);
 
+
 // Admin – add money to wallet
 router.post("/add", authenticateAndAuthorize(["customer"]), addWalletBalance);
 
