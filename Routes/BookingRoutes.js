@@ -12,6 +12,7 @@ import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 const router = express.Router();
 
+
 // Customer creates booking
 router.post("/",authenticateAndAuthorize(["customer"]),createBooking);
 router.get("/user/", authenticateAndAuthorize(["customer", "admin", "freelancer"]), getBookingsByUser);
