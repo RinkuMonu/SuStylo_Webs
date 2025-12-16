@@ -29,6 +29,9 @@ import searchRoutes from "./Routes/searchRoutes.js";
 import blogsRoutes from "./Routes/blogRoutes.js";
 import cartRoutes from "./Routes/CarRoute.js";
 
+import walletRoutes from "./Routes/walletRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -62,6 +65,8 @@ app.use("/api/commission", commissionRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/blogs", blogsRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/wallet", walletRoutes);
+
 
 
 app.get("/", (req, res) => {

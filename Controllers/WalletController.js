@@ -1,4 +1,4 @@
-import Wallet from "../Models/WalletModel";
+import Wallet from "../Models/WalletModel.js";
 
 // Get wallet balance
 export const getWallet = async (req, res) => {
