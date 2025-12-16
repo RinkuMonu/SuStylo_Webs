@@ -51,6 +51,7 @@ import {
   createSchedule,
   getAllSchedules,
   getScheduleById,
+  getScheduleBySalonId,
   updateSchedule,
   deleteSchedule
 } from "../Controllers/ScheduleController.js";
@@ -76,7 +77,10 @@ router.get(
   authenticateAndAuthorize([ "super_admin", "admin", "freelancer" ], { forbiddenMsg: "Not allowed" }),
   getScheduleById
 );
-
+router.get(
+  "/getSalonSchedule/:id",
+  getScheduleBySalonId
+);
 router.put(
   "/:id",
   authenticateAndAuthorize([ "super_admin", "admin", "freelancer" ], { forbiddenMsg: "Not allowed" }),
