@@ -312,7 +312,8 @@ export const getBlogsByCategory = async (req, res) => {
 
 export const addComment = async (req, res) => {
   try {
-    const { user, text } = req.body;
+    const { text } = req.body;
+    const user = req.user._id; 
     const { blogId } = req.params;
 
     const blogExists = await Blog.findById(blogId);
