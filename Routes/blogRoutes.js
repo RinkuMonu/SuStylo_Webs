@@ -12,6 +12,7 @@ import {
   approveComment,
   rejectComment,
 } from "../Controllers/blogController.js";
+import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
 import { uploadToCloudinary } from "../Middlewares/uploadMiddleware.js";
 
@@ -41,7 +42,7 @@ router.get("/list", getBlogs);
 router.get("/:id", getBlogById);
 router.get("/slug/:slug", getBlogBySlug);
 router.get("/category/:category", getBlogsByCategory);
-router.post("/:blogId/comment", addComment);
+router.post("/:blogId/comment",authenticateAndAuthorize(["customer", "admin", "freelancer"]), addComment);
 router.get("/:status", getCommentsByStatus);
 router.get("/:status/:blogId", getCommentsByStatus);
 router.put("/comment/:id/approve", approveComment);

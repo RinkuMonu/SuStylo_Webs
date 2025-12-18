@@ -16,7 +16,7 @@ const getApplicableCommission = async (type, targetId, defaultPercentage) => {
 export const getBookingsByUser = async (req, res) => {
   try {
     const userId  = req.user._id;  
-    const bookings = await Booking.find({ userId }).populate('salonId').populate('freelancerId').populate('services.serviceId');
+    const bookings = await Booking.find({ userId }).populate('salonId').populate('freelancerId').populate('services.serviceId').sort({createdAt:-1});
     res.json({ success: true, bookings });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -24,12 +24,15 @@ export const getBookingsByUser = async (req, res) => {
 };
 // Booking creation
 export const createBooking = async (req, res) => {
+  console.log("Booking creation request body:", req.body);
   try {
     const userId = req.user._id;
     const {
       address,
       bookingType,
       salonId,
+      freelancerId,
+      userType,
       services,
       scheduleId,
       paymentType,
@@ -41,17 +44,13 @@ export const createBooking = async (req, res) => {
 
     // Calculate base amount
     const baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
-
-    // You can add discount, tax, commission calculations here if needed
-    // const totalAmount = baseAmount + (transportCharges || 0);
     const totalAmount = baseAmount;
-
-    // Create booking
     const booking = await Booking.create({
       address,
       bookingType,
       userId,
       salonId,
+      freelancerId,
       services,
       scheduleId,
       baseAmount,
