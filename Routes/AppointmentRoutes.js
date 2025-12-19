@@ -24,7 +24,7 @@ router.post("/", authenticateAndAuthorize(["admin"]), assignAppointment);
 router.get("/", authenticateAndAuthorize(["admin"]), getAllAppointments);
 
 // Get Appointments by Staff
-router.get("/staff/:staffId", authenticateAndAuthorize(["admin"]), getAppointmentsByStaff);
+router.get("/staff/:staffId", authenticateAndAuthorize(["admin", "staff"]), getAppointmentsByStaff);
 
 // Update Appointment
 router.put("/:id", authenticateAndAuthorize(["admin"]), updateAppointment);

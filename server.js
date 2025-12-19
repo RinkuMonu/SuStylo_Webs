@@ -28,6 +28,7 @@ import commissionRoutes from "./Routes/CommissionRoute.js";
 import searchRoutes from "./Routes/searchRoutes.js";
 import blogsRoutes from "./Routes/blogRoutes.js";
 import cartRoutes from "./Routes/CarRoute.js";
+import dashboardRoutes from "./Routes/DashboardRoutes.js";
 
 import walletRoutes from "./Routes/walletRoutes.js";
 
@@ -66,6 +67,7 @@ app.use("/api/commission", commissionRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/blogs", blogsRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/dash", dashboardRoutes);
 app.use("/api/wallet", walletRoutes);
 
 

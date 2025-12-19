@@ -1,4 +1,5 @@
 import Admin, { ADMIN_ROLES } from "../Models/AdminModal.js";
+import Staff from "../Models/StaffModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -60,31 +61,83 @@ export const loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Find admin by email
+    /* =====================================================
+       1️⃣ TRY ADMIN LOGIN FIRST (UNCHANGED BEHAVIOUR)
+    ===================================================== */
     const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials." });
+
+    if (admin) {
+      const isMatch = await bcrypt.compare(password, admin.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials.",
+        });
+      }
+
+      if (!admin.isActive || admin.isDeleted) {
+        return res.status(403).json({
+          success: false,
+          message: "Account is inactive or deleted.",
+        });
+      }
+
+      const token = jwt.sign(
+        {
+          id: admin._id,
+          role: admin.role,
+          salonId: admin.salonId,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Login successful.",
+        token,
+        admin: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+        },
+      });
     }
 
-    // 2. Compare password
-    const isMatch = await bcrypt.compare(password, admin.passwordHash);
-    if (!isMatch) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials." });
+    /* =====================================================
+       2️⃣ IF NOT ADMIN → TRY STAFF LOGIN
+    ===================================================== */
+    const staff = await Staff.findOne({ email });
+
+    if (!staff) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials.",
+      });
     }
 
-    if (!admin.isActive || admin.isDeleted) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Account is inactive or deleted." });
+    const isStaffMatch = await bcrypt.compare(password, staff.password);
+    if (!isStaffMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials.",
+      });
     }
 
-    // 3. Generate JWT
+    if (staff.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: "Staff account is inactive or blocked.",
+      });
+    }
+
     const token = jwt.sign(
-      { id: admin._id, role: admin.role, salonId: admin.salonId },
+      {
+        id: staff._id,
+        role: "staff",
+        salonId: staff.salonId,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -93,21 +146,75 @@ export const loginAdmin = async (req, res) => {
       success: true,
       message: "Login successful.",
       token,
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
+      admin: {                     // ⚠️ intentionally admin key (frontend safe)
+        id: staff._id,
+        name: staff.name,
+        email: staff.email,
+        role: "staff",
       },
     });
+
   } catch (err) {
     console.error("loginAdmin:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error: " + err.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message,
+    });
   }
 };
-// 3️⃣ Send OTP for password reset
+
+// export const loginAdmin = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // 1. Find admin by email
+//     const admin = await Admin.findOne({ email });
+//     if (!admin) {
+//       return res
+//         .status(401)
+//         .json({ success: false, message: "Invalid credentials." });
+//     }
+
+//     // 2. Compare password
+//     const isMatch = await bcrypt.compare(password, admin.passwordHash);
+//     if (!isMatch) {
+//       return res
+//         .status(401)
+//         .json({ success: false, message: "Invalid credentials." });
+//     }
+
+//     if (!admin.isActive || admin.isDeleted) {
+//       return res
+//         .status(403)
+//         .json({ success: false, message: "Account is inactive or deleted." });
+//     }
+
+//     // 3. Generate JWT
+//     const token = jwt.sign(
+//       { id: admin._id, role: admin.role, salonId: admin.salonId },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "7d" }
+//     );
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Login successful.",
+//       token,
+//       admin: {
+//         id: admin._id,
+//         name: admin.name,
+//         email: admin.email,
+//         role: admin.role,
+//       },
+//     });
+//   } catch (err) {
+//     console.error("loginAdmin:", err);
+//     return res
+//       .status(500)
+//       .json({ success: false, message: "Server error: " + err.message });
+//   }
+// };
+
 export const sendAdminOtp = async (req, res) => {
   try {
     const { phone } = req.body;

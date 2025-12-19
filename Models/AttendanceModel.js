@@ -43,6 +43,11 @@ const attendanceSchema = new mongoose.Schema(
       default: "present",
     },
 
+    isCompleted: {
+  type: Boolean,
+  default: false, // markOut hone ke baad true
+},
+
     notes: { type: String, trim: true },
 
     // 🔹 Dynamic reference for staff/admin
