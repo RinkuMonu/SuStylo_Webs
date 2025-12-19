@@ -2,12 +2,22 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
-    bookingType: { type: String, enum: ["preBooking", "urgentBooking"], required: true },
+    bookingType: { type: String, enum: ["preBooking", "urgentBooking"], required: false },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     salonId: { type: mongoose.Schema.Types.ObjectId, ref: "Salon" },
     freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: "Freelancer" },
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-
+    address: {
+        type: {
+            line1: { type: String, required: true },
+            landmark: { type: String, required: false },
+            city: { type: String, required: true },
+            pincode: { type: String, required: true }
+        },
+        required: function() {
+            return this.isAtHome === true; 
+        }
+    },
     services: [
       {
         serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
@@ -34,7 +44,7 @@ const bookingSchema = new mongoose.Schema(
     approvedPrice: { type: Number }, // updated by salon/freelancer during approval
 
     // Payment
-    paymentType: { type: String, enum: ["wallet", "cash"], required: true },
+    paymentType: { type: String, enum: ["wallet", "cash"], required: false },
     paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
     transactionId: { type: String },
     walletTransaction: { type: mongoose.Schema.Types.ObjectId, ref: "WalletTransaction" },

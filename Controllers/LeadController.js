@@ -21,6 +21,7 @@ async function resolveUserContact(userId) {
 
 export const createLead = async (req, res) => {
   try {
+    // Ab data ke andar se fields nikalein
     const { 
       ownerName, 
       leadType, 
@@ -31,65 +32,80 @@ export const createLead = async (req, res) => {
       contact 
     } = req.body;
 
-    // 🔹 Validation
+    // 1. Common Basic Validation
     if (!ownerName || !leadType || !email || !contact) {
       return res.status(400).json({ 
         success: false, 
-        message: "ownerName, leadType, email and contact are required." 
+        message: "ownerName, leadType, email and contact are required fields." 
       });
     }
 
-    if (!["Salon", "Freelancer"].includes(leadType)) {
+    // 2. Lead Type Validation
+    const validLeads = ["Salon", "Freelancer"];
+    if (!validLeads.includes(leadType)) {
       return res.status(400).json({ 
         success: false, 
-        message: "leadType must be 'Salon' or 'Freelancer'." 
+        message: "leadType must be either 'Salon' or 'Freelancer'." 
       });
     }
 
-    // 🔹 Lead object बनाओ
+    // 3. Prepare common data
     const leadData = {
       ownerName,
       leadType,
       email,
       contact,
-      status: "pending"
+      status: "pending" // Default status
     };
 
+    // 4. Conditional logic based on leadType
     if (leadType === "Salon") {
-      if (!salonName || !address) {
+      // Salon ke liye ye fields compulsory hain
+      if (!salonName || !address || !address.street || !address.city || !address.pinCode) {
         return res.status(400).json({ 
           success: false, 
-          message: "Salon leads require salonName and address." 
+          message: "Salon leads require salonName and complete address (street, city, pinCode)." 
         });
       }
       leadData.salonName = salonName;
-      leadData.address = address;
-    }
-
-    if (leadType === "Freelancer") {
+      leadData.address = {
+        street: address.street,
+        area: address.area || "",
+        city: address.city,
+        state: address.state || "",
+        pinCode: address.pinCode,
+        country: address.country || "India"
+      };
+    } else if (leadType === "Freelancer") {
+      // Freelancer ke liye serviceArea compulsory hai
       if (!serviceArea) {
         return res.status(400).json({ 
           success: false, 
-          message: "Freelancer leads require serviceArea." 
+          message: "Freelancer leads require a serviceArea." 
         });
       }
       leadData.serviceArea = serviceArea;
+      // Ensure salon specific fields are NOT saved in freelancer lead
+      leadData.salonName = undefined;
+      leadData.address = undefined;
     }
 
-    // 🔹 Save lead
+    // 5. Save to MongoDB
     const lead = new Lead(leadData);
     await lead.save();
 
+    // 6. Final Success Response
     return res.status(201).json({ 
       success: true, 
-      message: "Lead submitted successfully.", 
+      message: `You are ready to become a ${leadType}. Please wait for approval, information will be sent on your mail.`, 
       lead 
     });
+
   } catch (err) {
-    console.error("createLead:", err);
+    console.error("Error in createLead Controller:", err);
     return res.status(500).json({ 
       success: false, 
-      message: "Server error: " + err.message 
+      message: "Internal Server Error: " + err.message 
     });
   }
 };
