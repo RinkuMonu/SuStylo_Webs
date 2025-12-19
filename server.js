@@ -29,11 +29,9 @@ import searchRoutes from "./Routes/searchRoutes.js";
 import blogsRoutes from "./Routes/blogRoutes.js";
 import cartRoutes from "./Routes/CarRoute.js";
 import dashboardRoutes from "./Routes/DashboardRoutes.js";
-
 import walletRoutes from "./Routes/walletRoutes.js";
-
-
 import bookRouter from "./Routes/BookingRoutes.js";
+import homeRouter from "./Routes/HomeRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -69,8 +67,7 @@ app.use("/api/blogs", blogsRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/dash", dashboardRoutes);
 app.use("/api/wallet", walletRoutes);
-
-
+app.use("/api/home", homeRouter);
 
 app.get("/", (req, res) => {
   res.json({
