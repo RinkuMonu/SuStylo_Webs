@@ -46,6 +46,10 @@ export const getAllAppointments = async (req, res) => {
 // ✅ Get by Staff
 export const getAppointmentsByStaff = async (req, res) => {
   try {
+    console.log("ROLE:", req.user.role);
+console.log("PARAM STAFF ID:", req.params.staffId);
+console.log("TOKEN USER ID:", req.user._id);
+
     const staff = await Staff.findById(req.params.staffId);
     if (!staff || String(staff.salonId) !== String(req.user.salonId)) {
       return res.status(403).json({ success: false, message: "Unauthorized" });

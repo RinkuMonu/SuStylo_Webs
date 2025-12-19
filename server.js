@@ -28,6 +28,7 @@ import commissionRoutes from "./Routes/CommissionRoute.js";
 import searchRoutes from "./Routes/searchRoutes.js";
 import blogsRoutes from "./Routes/blogRoutes.js";
 import cartRoutes from "./Routes/CarRoute.js";
+import dashboardRoutes from "./Routes/DashboardRoutes.js";
 
 
 dotenv.config();
@@ -62,6 +63,7 @@ app.use("/api/commission", commissionRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/blogs", blogsRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/dash", dashboardRoutes);
 
 
 app.get("/", (req, res) => {
