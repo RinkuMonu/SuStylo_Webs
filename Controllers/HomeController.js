@@ -2,6 +2,7 @@ import Salon from "../Models/SalonModel.js";
 import Freelancer from "../Models/FreelancerModel.js";
 import Service from "../Models/ServicesModel.js";
 
+
 export const getHomeData = async (req, res) => {
   try {
     const { lat, lng } = req.query;
