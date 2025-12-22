@@ -247,74 +247,40 @@ export const getFreelancerById = async (req, res) => {
     const rawServices = await Service.find({ freelancerId: freelancer._id }).populate("categoryId");
     const categorizedServices = rawServices.reduce((acc, service) => {
       if (service.categoryId && service.categoryId.name && service.gender) {
-          const gender = service.gender.toLowerCase();
-          const categoryName = service.categoryId.name;
-          
-          // 1. **acc[gender] check ab zaroori nahi hai, kyuki humne initial value mein set kar diya hai.**
-          // Lekin agar koi unknown gender aata hai toh yeh abhi bhi important hai.
+        const gender = service.gender.toLowerCase();
+        const categoryName = service.categoryId.name;
 
-          // Agar service ka gender male/female ke alawa hai (jaise unisex), toh use dynamically add karein
-          if (!acc[gender]) { 
-              acc[gender] = {}; 
-          }
+        // 1. **acc[gender] check ab zaroori nahi hai, kyuki humne initial value mein set kar diya hai.**
+        // Lekin agar koi unknown gender aata hai toh yeh abhi bhi important hai.
 
-          const categoryInfo = service.categoryId.toObject(); 
-          const serviceObject = service.toObject();
-          delete serviceObject.categoryId; 
+        // Agar service ka gender male/female ke alawa hai (jaise unisex), toh use dynamically add karein
+        if (!acc[gender]) {
+          acc[gender] = {};
+        }
 
-          if (!acc[gender][categoryName]) {
-              acc[gender][categoryName] = {
-                  category: categoryInfo,
-                  services: [] 
-              };
-          }
-          acc[gender][categoryName].services.push(serviceObject);
+        const categoryInfo = service.categoryId.toObject();
+        const serviceObject = service.toObject();
+        delete serviceObject.categoryId;
+
+        if (!acc[gender][categoryName]) {
+          acc[gender][categoryName] = {
+            category: categoryInfo,
+            services: []
+          };
+        }
+        acc[gender][categoryName].services.push(serviceObject);
       }
       return acc;
-  }, { male: {}, female: {} });
+    }, { male: {}, female: {} });
 
     const reviews = await Review.find({ reviewFor: "Freelancer", targetId: freelancer._id, status: "approved" }).populate("user");
     freelancer.reviews = reviews;
-    res.json({ success: true, freelancer: { ...freelancer.toObject(), services:categorizedServices,reviews:reviews } });
+    res.json({ success: true, freelancer: { ...freelancer.toObject(), services: categorizedServices, reviews: reviews } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// export const updateFreelancer = async (req, res) => {
-//   try {
-//     let updateData = { ...req.body };
-
-//     if (req.files?.photos) {
-//       updateData.photos = req.files.photos.map(file => file.path);
-//     }
-
-//     if (req.files?.agreementDocs) {
-//       updateData.agreementDocs = req.files.agreementDocs.map(file => file.path);
-//     }
-
-//     let freelancer;
-
-//     if (["super_admin", "admin"].includes(req.user.role)) {
-//       freelancer = await Freelancer.findByIdAndUpdate(req.params.id, updateData, { new: true });
-//     } else {
-//       freelancer = await Freelancer.findOneAndUpdate(
-//         { _id: req.params.id, user: req.user._id },
-//         updateData,
-//         { new: true }
-//       );
-//     }
-
-//     if (!freelancer) {
-//       return res.status(404).json({ success: false, message: "Freelancer not found or unauthorized" });
-//     }
-
-//     res.json({ success: true, freelancer });
-//   } catch (err) {
-//     console.error("UpdateFreelancer Error:", err);
-//     res.status(500).json({ success: false, error: err.message || err });
-//   }
-// };
 
 export const updateFreelancer = async (req, res) => {
   try {
@@ -349,6 +315,17 @@ export const updateFreelancer = async (req, res) => {
 
 
     // ✅ File uploads
+    // if (req.files?.photos) {
+    //   updateData.photos = req.files.photos.map((file) => file.path);
+    // }
+
+    // if (req.files?.agreementDocs) {
+    //   updateData.agreementDocs = req.files.agreementDocs.map(
+    //     (file) => file.path
+    //   );
+    // }
+
+    // ✅ File uploads
     if (req.files?.photos) {
       updateData.photos = req.files.photos.map((file) => file.path);
     }
@@ -358,6 +335,7 @@ export const updateFreelancer = async (req, res) => {
         (file) => file.path
       );
     }
+
 
     let freelancer;
 

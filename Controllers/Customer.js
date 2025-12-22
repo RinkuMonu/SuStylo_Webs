@@ -2,76 +2,12 @@ import Customer from "../Models/CustomerModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import fast2sms from "fast-two-sms";
+// import fast2sms from "fast-two-sms";
+import axios from "axios";
+
 import Wallet from "../Models/WalletModel.js";
 
 dotenv.config();
-
-// export const registerCustomer = async (req, res) => {
-//   try {
-//     const { name, email, phone, password, gender, age } = req.body;
-
-//     // Hash password first
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     // Profile Image (Cloudinary via multer)
-//     let avatarUrl = null;
-//     if (req.file && req.file.path) {
-//       avatarUrl = req.file.path; // store full URL
-//     }
-
-//     // Check if a customer exists (even soft deleted)
-//     let customer = await Customer.findOne({ $or: [{ email }, { phone }] });
-
-//     if (customer) {
-//       if (customer.isDeleted) {
-//         // Reactivate old customer
-//         customer.name = name;
-//         customer.email = email;
-//         customer.phone = phone;
-//         customer.passwordHash = hashedPassword;
-//         customer.gender = gender;
-//         customer.age = age;
-//         if (avatarUrl) customer.avatarUrl = avatarUrl;
-//         customer.status = "active";
-//         customer.isActive = true;
-//         customer.isDeleted = false;
-//         customer.isVerified = true; // optional: after OTP verification
-//         await customer.save();
-
-//         return res.status(200).json({
-//           success: true,
-//           message: "Customer re-registered successfully",
-//           customer,
-//         });
-//       } else {
-//         return res.status(400).json({ success: false, message: "User already exists!" });
-//       }
-//     }
-
-//     // If no existing customer, create new
-//     customer = await Customer.create({
-//       name,
-//       email,
-//       phone,
-//       passwordHash: hashedPassword,
-//       gender,
-//       age,
-//       avatarUrl,
-//       status: "active",
-//       isActive: true,
-//       isVerified: true, // optional
-//     });
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Customer registered successfully",
-//       customer,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 
 export const registerCustomer = async (req, res) => {
@@ -254,59 +190,95 @@ export const deleteAccount = async (req, res) => {
   }
 };
 
+// export const sendOtp = async (req, res) => {
+//   try {
+//     const { phone } = req.body;
+
+//     const customer = await Customer.findOne({ phone });
+//     if (!customer) return res.status(404).json({ success: false, message: "User not found!" });
+
+//     if (!process.env.FAST2SMS_API_KEY) {
+//       return res.status(500).json({ success: false, message: "Fast2SMS API key missing" });
+//     }
+
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+//     customer.otp = { code: otp, expiresAt };
+//     await customer.save();
+
+//     // Correct Fast2SMS call
+//     const response = await fast2sms.sendMessage({
+//       authorization: process.env.FAST2SMS_API_KEY,
+//       message: `Your OTP for password reset is ${otp}`,
+//       numbers: [phone],
+//       sender_id: "FSTSMS", // optional
+//       route: "v3",          // optional
+//     });
+
+//     console.log("Fast2SMS response:", response);
+
+//     res.json({ success: true, message: "OTP sent successfully" });
+//   } catch (err) {
+//     console.error("sendOtp error:", err.response || err.message || err);
+//     res.status(500).json({ success: false, message: "Failed to send OTP" });
+//   }
+// };
+
+
 export const sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
 
     const customer = await Customer.findOne({ phone });
-    if (!customer) return res.status(404).json({ success: false, message: "User not found!" });
-
-    if (!process.env.FAST2SMS_API_KEY) {
-      return res.status(500).json({ success: false, message: "Fast2SMS API key missing" });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "User not found!" });
     }
 
+    if (!process.env.MSG91_AUTH_KEY || !process.env.MSG91_TEMPLATE_ID) {
+      return res.status(500).json({ success: false, message: "MSG91 config missing" });
+    }
+
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min
 
     customer.otp = { code: otp, expiresAt };
     await customer.save();
 
-    // Correct Fast2SMS call
-    const response = await fast2sms.sendMessage({
-      authorization: process.env.FAST2SMS_API_KEY,
-      message: `Your OTP for password reset is ${otp}`,
-      numbers: [phone],
-      sender_id: "FSTSMS", // optional
-      route: "v3",          // optional
-    });
+    // MSG91 Flow API call
+    const payload = {
+      template_id: process.env.MSG91_TEMPLATE_ID,
+      short_url: "0",
+      recipients: [
+        {
+          mobiles: `91${phone}`, // India code
+          OTP: otp,              // must match variable name in MSG91 template
+        },
+      ],
+    };
 
-    console.log("Fast2SMS response:", response);
+    const response = await axios.post(
+      "https://control.msg91.com/api/v5/flow/",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authkey: process.env.MSG91_AUTH_KEY,
+        },
+      }
+    );
 
-    res.json({ success: true, message: "OTP sent successfully" });
+    console.log("MSG91 response:", response.data);
+
+    res.json({ success: true, message: "OTP sent successfully via MSG91" });
   } catch (err) {
-    console.error("sendOtp error:", err.response || err.message || err);
+    console.error("sendOtp error:", err.response?.data || err.message);
     res.status(500).json({ success: false, message: "Failed to send OTP" });
   }
 };
 
-// export const verifyOtp = async (req, res) => {
-//   try {
-//     const { phone, otp } = req.body;
-//     const customer = await Customer.findOne({ phone });
 
-//     if (!customer || !customer.otp) {
-//       return res.status(400).json({ success: false, message: "OTP not found!" });
-//     }
-
-//     if (customer.otp.code !== otp || customer.otp.expiresAt < new Date()) {
-//       return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
-//     }
-
-//     res.json({ success: true, message: "OTP verified" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 export const verifyOtp = async (req, res) => {
   try {
@@ -330,31 +302,6 @@ export const verifyOtp = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-// export const resetPassword = async (req, res) => {
-//   try {
-//     const { phone, otp, newPassword } = req.body;
-//     const customer = await Customer.findOne({ phone });
-
-//     if (!customer || !customer.otp) {
-//       return res.status(400).json({ success: false, message: "Invalid request!" });
-//     }
-
-//     if (customer.otp.code !== otp || customer.otp.expiresAt < new Date()) {
-//       return res.status(400).json({ success: false, message: "Invalid or expired OTP!" });
-//     }
-
-//     customer.passwordHash = await bcrypt.hash(newPassword, 10);
-//     customer.otp = null;
-//     await customer.save();
-
-//     res.json({ success: true, message: "Password reset successfully" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
 
 export const resetPassword = async (req, res) => {
   try {
