@@ -22,7 +22,60 @@ export const getBookingsByUser = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   } 
 };
+
+
 // Booking creation
+// export const createBooking = async (req, res) => {
+//   console.log("Booking creation request body:", req.body);
+//   try {
+//     const userId = req.user._id;
+//     const {
+//       address,
+//       bookingType,
+//       salonId,
+//       freelancerId,
+//       userType,
+//       services,
+//       scheduleId,
+//       paymentType,
+//       // transportCharges,
+//       // staffId,
+//       // event,
+//       isAtHome,
+//     } = req.body;
+
+//     // Calculate base amount
+//     const baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
+//     const totalAmount = baseAmount;
+//     const booking = await Booking.create({
+//       address,
+//       bookingType,
+//       userId,
+//       salonId,
+//       freelancerId,
+//       services,
+//       scheduleId,
+//       baseAmount,
+//       totalAmount,
+//       paymentType,
+//       isAtHome,
+//     });
+
+//     // Clear user's cart after successful booking
+//     await Cart.findOneAndDelete({ userId });
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Booking created successfully and cart cleared",
+//       booking,
+//     });
+
+//   } catch (err) {
+//     console.error("Booking creation error:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 export const createBooking = async (req, res) => {
   console.log("Booking creation request body:", req.body);
   try {
@@ -32,19 +85,56 @@ export const createBooking = async (req, res) => {
       bookingType,
       salonId,
       freelancerId,
-      userType,
       services,
       scheduleId,
-      paymentType,
-      // transportCharges,
-      // staffId,
-      // event,
+      paymentType, // "wallet" | "cash"
       isAtHome,
     } = req.body;
 
-    // Calculate base amount
-    const baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
+    // ✅ Calculate base & total
+    const baseAmount = services.reduce(
+      (acc, s) => acc + s.price * (s.quantity || 1),
+      0
+    );
     const totalAmount = baseAmount;
+
+    let paymentStatus = "pending";
+
+    // ✅ Case 3: Salon service + wallet payment
+    if (!isAtHome && paymentType === "wallet") {
+      const userWallet = await Wallet.findOne({
+        owner: userId,
+        ownerModel: "User",
+      });
+
+      if (!userWallet) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Wallet not found!" });
+      }
+
+      if (userWallet.balance < totalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: "Insufficient wallet balance!",
+        });
+      }
+
+      // ✅ Deduct balance
+      userWallet.balance -= totalAmount;
+      userWallet.transactions.push({
+        type: "debit",
+        amount: totalAmount,
+        method: "online",
+        bookingId: null,
+        description: "Booking payment via wallet",
+      });
+      await userWallet.save();
+
+      paymentStatus = "paid";
+    }
+
+    // ✅ Create booking
     const booking = await Booking.create({
       address,
       bookingType,
@@ -56,60 +146,38 @@ export const createBooking = async (req, res) => {
       baseAmount,
       totalAmount,
       paymentType,
+      paymentStatus, // pending or paid
       isAtHome,
+      status: "pending",
     });
 
-    // Clear user's cart after successful booking
+    // 🔄 Update wallet transaction with bookingId (if wallet used)
+    if (!isAtHome && paymentType === "wallet") {
+      const userWallet = await Wallet.findOne({
+        owner: userId,
+        ownerModel: "User",
+      });
+      const lastTx = userWallet.transactions[userWallet.transactions.length - 1];
+      if (lastTx) {
+        lastTx.bookingId = booking._id;
+        await userWallet.save();
+      }
+    }
+
+    // 🛒 Clear cart
     await Cart.findOneAndDelete({ userId });
 
     res.status(201).json({
       success: true,
-      message: "Booking created successfully and cart cleared",
+      message: "Booking created successfully",
       booking,
     });
-
   } catch (err) {
     console.error("Booking creation error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// export const createBooking = async (req, res) => {
-//   try {
-//     const userId = req.user._id;
-//     const { bookingType, salonId, freelancerId, services, comboId, schedule, paymentType, transportCharges, staffId, event, isAtHome } = req.body;
-
-//     let baseAmount = services.reduce((acc, s) => acc + s.price * (s.quantity || 1), 0);
-//     if (comboId) {
-//       const combo = await mongoose.model("ServiceCombo").findById(comboId);
-//       if (combo) baseAmount += combo.basePrice;
-//     }
-//     const totalAmount = baseAmount + (transportCharges || 0);
-
-//     // Set initial status
-//     const status = isAtHome ? "pendingApproval" : "confirmed";
-
-//     const booking = await Booking.create({
-//       bookingType,
-//       userId,
-//       salonId,
-//       freelancerId,
-//       staffId,
-//       services,
-//       comboId,
-//       scheduleId: scheduleId, // ✅ map correctly
-//       baseAmount,
-//       totalAmount,
-//       paymentType,
-//       status,
-//       event
-//     });
-
-//     res.status(201).json({ success: true, booking });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 // Approve Booking (for at-home)
 export const approveBooking = async (req, res) => {
