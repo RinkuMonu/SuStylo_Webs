@@ -26,7 +26,7 @@ const freelancerSchema = new mongoose.Schema(
 
     // Contact details
     contact: {
-      phone: { type: String, required: true, trim: true },
+      phone: { type: String, trim: true },
       email: { type: String, trim: true },
       website: { type: String, trim: true },
     },
@@ -34,8 +34,8 @@ const freelancerSchema = new mongoose.Schema(
     // Address details
     address: {
       street: { type: String, trim: true },
-      area: { type: String, required: true, trim: true },
-      city: { type: String, required: true, trim: true },
+      area: { type: String, trim: true },
+      city: { type: String,  trim: true },
       state: { type: String, trim: true },
       pinCode: { type: String, trim: true },
       country: { type: String, trim: true, default: "India" },
