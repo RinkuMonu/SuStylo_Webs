@@ -11,6 +11,7 @@ import {
   getCommentsByStatus,
   approveComment,
   rejectComment,
+  deleteComment,
 } from "../Controllers/blogController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
@@ -48,5 +49,7 @@ router.get("/:status/:blogId", getCommentsByStatus);
 router.put("/comment/:id/approve", approveComment);
 
 router.put("/comment/:id/reject", rejectComment);
+router.delete("/comment/:id", deleteComment);
+
 
 export default router;

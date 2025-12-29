@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"]),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"]),
   uploadToCloudinary("services").single("image"), // ⬅️ store in "services" folder
   createService
 );
@@ -34,14 +34,14 @@ router.get(
 
 router.put(
   "/:id",
-  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"]),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"]),
   uploadToCloudinary("services").single("image"),
   updateService
 );
 
 router.delete(
   "/:id",
-  authenticateAndAuthorize(["super_admin", "admin", "Freelancer"], { forbiddenMsg: "Not allowed" }),
+  authenticateAndAuthorize(["super_admin", "admin", "freelancer"], { forbiddenMsg: "Not allowed" }),
   deleteService
 );
 

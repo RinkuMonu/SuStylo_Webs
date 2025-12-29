@@ -91,24 +91,6 @@ export const getAllStaff = async (req, res) => {
   }
 };
 
-// export const getStaffById = async (req, res) => {
-//   try {
-//     const staff = await Staff.findById(req.params.id).populate("services salonId");
-//     if (!staff) return res.status(404).json({ success: false, message: "Staff not found" });
-
-//     if (
-//       req.user.role === "super_admin" ||
-//       (req.user.role === "admin" && String(staff.salonId) === String(req.user.salonId))
-//     ) {
-//       res.json({ success: true, staff });
-//     } else {
-//       return res.status(403).json({ success: false, message: "Unauthorized access" });
-//     }
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
 
 export const getStaffById = async (req, res) => {
   try {
@@ -133,31 +115,6 @@ export const getStaffById = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-// export const updateStaff = async (req, res) => {
-//   try {
-//     let staff = await Staff.findById(req.params.id);
-//     if (!staff) return res.status(404).json({ success: false, message: "Staff not found" });
-
-//     if (
-//       req.user.role === "super_admin" ||
-//       (req.user.role === "admin" && String(staff.salonId) === String(req.user.salonId))
-//     ) {
-//       if (req.file && req.file.path) {
-//         req.body.avatarUrl = req.file.path;
-//       }
-//       Object.assign(staff, req.body);
-//       await staff.save();
-//       res.json({ success: true, staff });
-//     } else {
-//       return res.status(403).json({ success: false, message: "Unauthorized" });
-//     }
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
 
 export const updateStaff = async (req, res) => {
   try {

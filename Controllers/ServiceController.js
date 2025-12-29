@@ -15,7 +15,7 @@ export const createService = async (req, res) => {
     if (req.user.role === "admin") {
       serviceData.salonId = req.user.salonId; // automatically from token
       serviceData.atHome = req.body.atHome || false;
-    } else if (req.user.role === "Freelancer") {
+    } else if (req.user.role === "freelancer") {
       serviceData.freelancerId = req.user.freelancerId; // automatically from token
       serviceData.atHome = true;
     } else if (req.user.role === "super_admin") {
@@ -103,46 +103,107 @@ export const getServiceById = async (req, res) => {
 
 
 
+// export const updateService = async (req, res) => {
+//   try {
+//     const updates = { ...req.body };
+//     if (req.file) updates.image = req.file.path;
+
+//     // Only Salon can update `atHome` toggle
+//     if (req.user.role === "Freelancer") {
+//       delete updates.atHome; // ignore freelancer's atHome updates
+//     }
+
+//     let service = await Service.findByIdAndUpdate(req.params.id, updates, { new: true });
+//     if (!service) return res.status(404).json({ success: false, message: "Service not found" });
+
+//     res.json({ success: true, service });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 export const updateService = async (req, res) => {
   try {
     const updates = { ...req.body };
     if (req.file) updates.image = req.file.path;
 
-    // Only Salon can update `atHome` toggle
-    if (req.user.role === "Freelancer") {
-      delete updates.atHome; // ignore freelancer's atHome updates
+    // Only Freelancer can't update atHome
+    if (req.user.role === "freelancer") {
+      delete updates.atHome;
     }
 
-    let service = await Service.findByIdAndUpdate(req.params.id, updates, { new: true });
-    if (!service) return res.status(404).json({ success: false, message: "Service not found" });
+    const service = await Service.findById(req.params.id);
+    if (!service) {
+      return res.status(404).json({ success: false, message: "Service not found" });
+    }
 
-    res.json({ success: true, service });
+    // 🔒 Ownership check
+    if (
+      req.user.role === "super_admin" ||
+      (req.user.role === "admin" && String(service.salonId) === String(req.user.salonId)) ||
+      (req.user.role === "Freelancer" && String(service.freelancerId) === String(req.user.freelancerId))
+    ) {
+      const updatedService = await Service.findByIdAndUpdate(
+        req.params.id,
+        updates,
+        { new: true }
+      );
+      return res.json({ success: true, service: updatedService });
+    }
+
+    return res.status(403).json({ success: false, message: "Unauthorized" });
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+
+// export const deleteService = async (req, res) => {
+//   try {
+//     let service = await Service.findById(req.params.id);
+//     if (!service) return res.status(404).json({ success: false, message: "Service not found" });
+
+//     // Check permission
+//     if (
+//       ["SuperAdmin", "Admin"].includes(req.user.role)
+//       || (req.user.role === "Salon" && String(service.salonId) === String(req.user.salonId))
+//       || (req.user.role === "Freelancer" && String(service.freelancerId) === String(req.user.freelancerId))
+//     ) {
+//       await service.deleteOne();
+//       res.json({ success: true, message: "Service deleted" });
+//     } else {
+//       return res.status(403).json({ success: false, message: "Unauthorized" });
+//     }
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
 
 export const deleteService = async (req, res) => {
   try {
-    let service = await Service.findById(req.params.id);
-    if (!service) return res.status(404).json({ success: false, message: "Service not found" });
+    const service = await Service.findById(req.params.id);
+    if (!service) {
+      return res.status(404).json({ success: false, message: "Service not found" });
+    }
 
-    // Check permission
+    // 🔒 Ownership check
     if (
-      ["SuperAdmin", "Admin"].includes(req.user.role)
-      || (req.user.role === "Salon" && String(service.salonId) === String(req.user.salonId))
-      || (req.user.role === "Freelancer" && String(service.freelancerId) === String(req.user.freelancerId))
+      req.user.role === "super_admin" ||
+      (req.user.role === "admin" && String(service.salonId) === String(req.user.salonId)) ||
+      (req.user.role === "freelancer" && String(service.freelancerId) === String(req.user.freelancerId))
     ) {
       await service.deleteOne();
-      res.json({ success: true, message: "Service deleted" });
-    } else {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
+      return res.json({ success: true, message: "Service deleted" });
     }
+
+    return res.status(403).json({ success: false, message: "Unauthorized" });
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 
 export const getServicesByCategory = async (req, res) => {
