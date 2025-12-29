@@ -7,6 +7,9 @@ import {
 //h
   // completeBooking,
   cancelBooking,
+  getAllBookingsForAdmin,
+  getBookingsByProvider,
+  approveBookingByProvider,
 } from "../Controllers/BookingController.js";
 import { authenticateAndAuthorize } from "../Middlewares/AuthMiddleware.js";
 
@@ -26,6 +29,18 @@ router.put("/:bookingId/confirm", authenticateAndAuthorize(["customer"]), confir
 // router.put("/:bookingId/complete", authenticateAndAuthorize(["admin", "freelancer"]), completeBooking);
 
 // Cancel booking
-router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer", "admin"]), cancelBooking);
+router.put("/:bookingId/cancel", authenticateAndAuthorize(["customer", "admin" , "freelancer"]), cancelBooking);
+
+
+
+
+// Admin gets all bookings (with optional filters)
+router.get("/admin/", authenticateAndAuthorize(["super_admin"]), getAllBookingsForAdmin);
+
+// Freelancer/Salon owner gets their bookings
+router.get("/provider/", authenticateAndAuthorize(["freelancer", "admin"]), getBookingsByProvider);
+
+// Freelancer/Salon approves/rejects and updates price
+router.put("/:bookingId/approve", authenticateAndAuthorize(["freelancer", "admin"]), approveBookingByProvider);
 
 export default router;

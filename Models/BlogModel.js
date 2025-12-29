@@ -26,7 +26,7 @@ const BlogSchema = new mongoose.Schema(
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
-      required: true,
+      required: false,
     },
 
     // ----------------------------------------

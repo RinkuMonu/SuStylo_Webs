@@ -422,3 +422,40 @@ export const rejectComment = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+// Add this function in blogController.js
+
+export const deleteComment = async (req, res) => {
+  try {
+    const { id: commentId } = req.params;
+
+    // Find and delete the comment
+    const comment = await Comment.findByIdAndDelete(commentId);
+
+    if (!comment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Comment not found" 
+      });
+    }
+
+    // Remove the comment reference from the blog
+    await Blog.findByIdAndUpdate(
+      comment.blog,
+      { $pull: { comments: commentId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Comment deleted successfully",
+      data: comment,
+    });
+  } catch (error) {
+    console.error("Delete Comment Error:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};

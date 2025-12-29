@@ -11,7 +11,7 @@ const router = express.Router();
 // Super Admin Route
 router.get(
   "/super-admin", 
-  authenticateAndAuthorize(["super_admin"]), 
+  authenticateAndAuthorize(["super_admin"]),
   getSuperAdminDashboard
 );
 
@@ -24,7 +24,7 @@ router.get(
 
 // Freelancer Route
 router.get(
-  "/freelancer", 
+  "/freelancer",
   authenticateAndAuthorize(["freelancer"]), 
   getFreelancerDashboard
 );
