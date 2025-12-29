@@ -86,6 +86,7 @@ export const markAttendanceIn = async (req, res) => {
         message: "Mark In already done for today",
       });
     }
+    
 
     const attendance = await Attendance.create({
       staffId,
