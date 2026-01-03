@@ -2,6 +2,7 @@ import express from "express";
 import { 
   getAdminDashboard,
   getFreelancerDashboard,
+  getStaffDashboard,
   getSuperAdminDashboard,
   
 } from "../Controllers/DashboardController.js";
@@ -11,7 +12,7 @@ const router = express.Router();
 // router.get("/dashboard", authenticateAndAuthorize(["superadmin", "admin", "freelancer"]), getUnifiedDashboard);
 // Super Admin Route
 router.get(
-  "/super-admin", 
+  "/super-admin",
   authenticateAndAuthorize(["super_admin"]),
   getSuperAdminDashboard
 );
@@ -28,6 +29,13 @@ router.get(
   "/freelancer",
   authenticateAndAuthorize(["freelancer"]), 
   getFreelancerDashboard
+);
+
+// staff routes
+router.get(
+  "/staff",
+  authenticateAndAuthorize(["staff"]),
+  getStaffDashboard
 );
 
 export default router;
